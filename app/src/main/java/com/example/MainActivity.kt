@@ -237,15 +237,17 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
                     IconButton(
                         onClick = { viewModel.openSmartMatchDialog() },
                         modifier = Modifier
-                            .padding(end = 4.dp)
+                            .padding(end = 3.dp)
                             .size(38.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f))
                             .testTag("top_bar_smart_match_button")
                     ) {
-                        Text(
-                            text = "🎯",
-                            fontSize = 17.sp
+                        Icon(
+                            imageVector = Icons.Default.ElectricBolt,
+                            contentDescription = "Smart match",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(19.dp)
                         )
                     }
 

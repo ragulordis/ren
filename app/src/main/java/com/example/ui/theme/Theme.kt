@@ -3,6 +3,7 @@ package com.example.ui.theme
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -10,6 +11,15 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+
+private val QuickNestShapes = Shapes(
+  extraSmall = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+  small = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
+  medium = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
+  large = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
+  extraLarge = androidx.compose.foundation.shape.RoundedCornerShape(26.dp),
+)
 
 private val DarkColorScheme =
   darkColorScheme(
@@ -70,6 +80,10 @@ fun MyApplicationTheme(
       else -> LightColorScheme
     }
 
-  MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
+  MaterialTheme(
+    colorScheme = colorScheme,
+    typography = Typography,
+    shapes = QuickNestShapes,
+    content = content
+  )
 }
-
