@@ -1,0 +1,935 @@
+package com.example.ui.screens
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.data.model.PropertyCategory
+import com.example.ui.components.PropertyCard
+import com.example.ui.components.PropertySearchBar
+import com.example.ui.components.RecentSearchesRow
+import com.example.ui.components.SkeletonPropertyCard
+import com.example.ui.components.SkeletonUrgentPropertyCard
+import com.example.ui.components.SmartMatchCard
+import com.example.ui.components.UrgentPropertyCard
+import com.example.ui.theme.BrandPrimary
+import com.example.ui.theme.CardBorder
+import com.example.ui.theme.CardBorderSubtle
+import com.example.ui.theme.CoolCyanGradient
+import com.example.ui.theme.CoolHeroGradient
+import com.example.ui.theme.TextMuted
+import com.example.ui.theme.TextPrimary
+import com.example.ui.theme.TextSecondary
+import com.example.ui.theme.UrgencyFlame
+import com.example.ui.theme.UrgencyFlameContainer
+import com.example.viewmodel.QuickNestViewModel
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeScreen(
+    viewModel: QuickNestViewModel,
+    modifier: Modifier = Modifier
+) {
+    val filteredProperties by viewModel.filteredProperties.collectAsStateWithLifecycle()
+    val urgentProperties by viewModel.urgentProperties.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val selectedCategory by viewModel.selectedCategory.collectAsStateWithLifecycle()
+    val selectedPropertyType by viewModel.selectedPropertyType.collectAsStateWithLifecycle()
+    val selectedLocation by viewModel.selectedLocation.collectAsStateWithLifecycle()
+    val urgentOnly by viewModel.urgentOnly.collectAsStateWithLifecycle()
+    val activeFiltersCount by viewModel.activeFiltersCount.collectAsStateWithLifecycle()
+    val selectedBudget by viewModel.selectedBudget.collectAsStateWithLifecycle()
+    val selectedBedrooms by viewModel.selectedBedrooms.collectAsStateWithLifecycle()
+    val verifiedOnly by viewModel.verifiedOnly.collectAsStateWithLifecycle()
+    val minPrice by viewModel.minPrice.collectAsStateWithLifecycle()
+    val maxPrice by viewModel.maxPrice.collectAsStateWithLifecycle()
+    val recentSearches by viewModel.recentSearches.collectAsStateWithLifecycle()
+    val smartMatchResults by viewModel.smartMatchResults.collectAsStateWithLifecycle()
+    val smartMatchPreferences by viewModel.smartMatchPreferences.collectAsStateWithLifecycle()
+    val isSmartMatchLoading by viewModel.isSmartMatchLoading.collectAsStateWithLifecycle()
+
+    var showLocationMenu by remember { mutableStateOf(false) }
+    val locationsList = listOf("Kottakuppam", "Pondicherry", "Auroville", "Serenity Beach", "All Locations")
+
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = { viewModel.refreshProperties() },
+        modifier = modifier
+            .fillMaxSize()
+            .testTag("home_screen_swipe_refresh")
+    ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag("home_screen_content"),
+            contentPadding = PaddingValues(bottom = 100.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+        // 1. Top Header: Greeting & Hyperlocal Location Picker
+        item {
+            val livePulseTransition = rememberInfiniteTransition(label = "livePulse")
+            val livePulseAlpha by livePulseTransition.animateFloat(
+                initialValue = 0.35f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(800),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "livePulseAlpha"
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 4.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Column {
+                        Text(
+                            text = "Good Evening,",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "Ragul 👋",
+                            fontSize = 21.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    // Location Indicator & Dropdown on right with live radar beacon
+                    Box {
+                        Column(
+                            horizontalAlignment = Alignment.End,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f))
+                                .clickable { showLocationMenu = true }
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                                .testTag("location_selector")
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = selectedLocation,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(9.dp)
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = livePulseAlpha), CircleShape)
+                                )
+                            }
+                            Text(
+                                text = "PONDICHERRY, INDIA",
+                                fontSize = 9.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.SemiBold,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = showLocationMenu,
+                            onDismissRequest = { showLocationMenu = false }
+                        ) {
+                            locationsList.forEach { loc ->
+                                DropdownMenuItem(
+                                    text = { Text(loc, fontWeight = if (loc == selectedLocation) FontWeight.Bold else FontWeight.Normal) },
+                                    onClick = {
+                                        viewModel.selectLocation(loc)
+                                        showLocationMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. Search Box with Location & Price Range Filters + Natural AI Prompt
+        item {
+            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                PropertySearchBar(
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = { viewModel.updateSearchQuery(it) },
+                    selectedLocation = selectedLocation,
+                    onLocationChange = { viewModel.selectLocation(it) },
+                    minPrice = minPrice,
+                    maxPrice = maxPrice,
+                    onPriceRangeChange = { min, max -> viewModel.setPriceRange(min, max) },
+                    availableLocations = locationsList,
+                    onOpenFilterSheet = { viewModel.openFilterSheet() },
+                    activeFiltersCount = activeFiltersCount,
+                    onSearchSubmitted = { term -> viewModel.saveRecentSearch(term) }
+                )
+
+                // Row of Property Type Filter Chips (Apartment, Villa, Studio, House, Plot/Land, Commercial)
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .testTag("property_type_filter_row"),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val propertyTypeItems = listOf(
+                        Triple("All", "All Types", "✨"),
+                        Triple("Apartment", "Apartment", "🏢"),
+                        Triple("Villa", "Villa", "🏡"),
+                        Triple("Studio", "Studio", "🛋️"),
+                        Triple("House", "House", "🏠"),
+                        Triple("Plot / Land", "Plot / Land", "🌳"),
+                        Triple("Commercial", "Commercial", "🏬")
+                    )
+
+                    propertyTypeItems.forEach { (typeKey, label, emoji) ->
+                        val isSelected = (selectedPropertyType == null && typeKey == "All") || (selectedPropertyType == typeKey)
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                viewModel.selectPropertyType(if (typeKey == "All") null else typeKey)
+                            },
+                            leadingIcon = {
+                                Text(
+                                    text = emoji,
+                                    fontSize = 13.sp
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = label,
+                                    fontSize = 12.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                )
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                labelColor = TextPrimary
+                            ),
+                            modifier = Modifier.testTag("filter_chip_${typeKey.lowercase().replace(" ", "_").replace("/", "_")}")
+                        )
+                    }
+                }
+
+                // Active Filters Row (if any active)
+                if (activeFiltersCount > 0) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (selectedPropertyType != null) {
+                            FilterChip(
+                                selected = true,
+                                onClick = { viewModel.selectPropertyType(null) },
+                                label = { Text("$selectedPropertyType ✕", fontSize = 11.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                ),
+                                modifier = Modifier.testTag("active_filter_chip_property_type")
+                            )
+                        }
+                        if (minPrice != null || maxPrice != null) {
+                            val rangeText = when {
+                                minPrice != null && maxPrice != null -> "₹${minPrice!! / 100000}L - ₹${maxPrice!! / 100000}L ✕"
+                                minPrice != null -> "Min ₹${minPrice!! / 100000}L ✕"
+                                else -> "Max ₹${maxPrice!! / 100000}L ✕"
+                            }
+                            FilterChip(
+                                selected = true,
+                                onClick = { viewModel.clearPriceRange() },
+                                label = { Text(rangeText, fontSize = 11.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            )
+                        }
+                        if (selectedLocation != "All Locations" && selectedLocation != "Kottakuppam") {
+                            FilterChip(
+                                selected = true,
+                                onClick = { viewModel.selectLocation("All Locations") },
+                                label = { Text("$selectedLocation ✕", fontSize = 11.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
+                        }
+                        if (selectedCategory != PropertyCategory.ALL) {
+                            FilterChip(
+                                selected = true,
+                                onClick = { viewModel.selectCategory(PropertyCategory.ALL) },
+                                label = { Text("${selectedCategory.label} ✕", fontSize = 11.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
+                        }
+                        if (selectedBudget != com.example.viewmodel.BudgetFilter.ALL) {
+                            FilterChip(
+                                selected = true,
+                                onClick = { viewModel.setBudgetFilter(com.example.viewmodel.BudgetFilter.ALL) },
+                                label = { Text("${selectedBudget.label} ✕", fontSize = 11.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            )
+                        }
+                        if (selectedBedrooms > 0) {
+                            FilterChip(
+                                selected = true,
+                                onClick = { viewModel.setBedroomsFilter(0) },
+                                label = { Text("${selectedBedrooms} BHK ✕", fontSize = 11.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                            )
+                        }
+                        if (urgentOnly) {
+                            FilterChip(
+                                selected = true,
+                                onClick = { viewModel.setUrgentOnly(false) },
+                                label = { Text("⚡ Urgent ✕", fontSize = 11.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = UrgencyFlameContainer,
+                                    selectedLabelColor = UrgencyFlame
+                                )
+                            )
+                        }
+                        if (verifiedOnly) {
+                            FilterChip(
+                                selected = true,
+                                onClick = { viewModel.setVerifiedOnly(false) },
+                                label = { Text("🛡️ Verified ✕", fontSize = 11.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = com.example.ui.theme.VerifiedGreenContainer,
+                                    selectedLabelColor = com.example.ui.theme.VerifiedGreen
+                                )
+                            )
+                        }
+
+                        Text(
+                            text = "Clear All",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .clickable { viewModel.resetFilters() }
+                                .padding(horizontal = 6.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // AI Property Assistant Bar with interactive press and cyber-luxe gradient
+                val aiInteractionSource = remember { MutableInteractionSource() }
+                val isAiPressed by aiInteractionSource.collectIsPressedAsState()
+                val aiScale by animateFloatAsState(
+                    targetValue = if (isAiPressed) 0.97f else 1.0f,
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+                    label = "aiBannerScale"
+                )
+
+                val aiGlowTransition = rememberInfiniteTransition(label = "aiGlow")
+                val aiGlowAlpha by aiGlowTransition.animateFloat(
+                    initialValue = 0.5f,
+                    targetValue = 1.0f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(1200),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "aiGlowAlpha"
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .scale(aiScale)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(Color(0xFF0A1128), Color(0xFF131D3B), Color(0xFF1E1B4B))
+                            )
+                        )
+                        .border(
+                            1.dp,
+                            Brush.horizontalGradient(
+                                listOf(Color(0xFF00E5FF).copy(alpha = aiGlowAlpha), Color(0xFF6366F1).copy(alpha = aiGlowAlpha))
+                            ),
+                            RoundedCornerShape(18.dp)
+                        )
+                        .clickable(
+                            interactionSource = aiInteractionSource,
+                            indication = null
+                        ) { viewModel.openAiAssistant() }
+                        .padding(horizontal = 14.dp, vertical = 11.dp)
+                        .testTag("ai_assistant_banner"),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(
+                                    Brush.linearGradient(
+                                        listOf(Color(0xFF00E5FF).copy(alpha = 0.3f), Color(0xFF6366F1).copy(alpha = 0.4f))
+                                    ),
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = Color(0xFF38BDF8),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Column {
+                            Text(
+                                text = "QuickNest AI Assistant",
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "\"House near Auroville under ₹20,000\"",
+                                color = Color(0xFF94A3B8),
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFF00E5FF).copy(alpha = 0.15f))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "Ask AI →",
+                            color = Color(0xFF38BDF8),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+
+        // 🎯 SMART MATCH ALGORITHM RECOMMENDATIONS (Firestore Queries + Weighted Scoring)
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "🎯",
+                                fontSize = 16.sp
+                            )
+                            Text(
+                                text = "Smart Match Engine",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        Text(
+                            text = "Cloud Firestore • ${smartMatchPreferences.summaryText}",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                        modifier = Modifier
+                            .clickable { viewModel.openSmartMatchDialog() }
+                            .testTag("home_smart_match_tune_button")
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "Tune / Match",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                text = "→",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+                }
+
+                if (isSmartMatchLoading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = BrandPrimary
+                            )
+                            Text(
+                                text = "Querying Firestore for smart matches...",
+                                fontSize = 12.sp,
+                                color = BrandPrimary
+                            )
+                        }
+                    }
+                } else if (smartMatchResults.isNotEmpty()) {
+                    smartMatchResults.take(3).forEach { result ->
+                        SmartMatchCard(
+                            result = result,
+                            onClick = { viewModel.openPropertyDetails(result.property) },
+                            onToggleSave = { viewModel.toggleSave(result.property) },
+                            onContactSeller = { viewModel.openContactSeller(result.property) },
+                            onBookVisit = { viewModel.openVisitBooking(result.property) }
+                        )
+                    }
+
+                    if (smartMatchResults.size > 3) {
+                        OutlinedButton(
+                            onClick = { viewModel.openSmartMatchDialog() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("view_all_smart_matches_button"),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                text = "View All ${smartMatchResults.size} Smart Matches →",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3. 🔥 URGENT PROPERTIES (Section 6 & 7 of Blueprint)
+        if (isLoading && urgentProperties.isEmpty()) {
+            item(key = "skeleton_urgent_row") {
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "🔥",
+                                fontSize = 14.sp
+                            )
+                            Text(
+                                text = "URGENT PROPERTIES",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        modifier = Modifier.testTag("home_skeleton_urgent_row")
+                    ) {
+                        items(3) { idx ->
+                            SkeletonUrgentPropertyCard(
+                                modifier = Modifier.testTag("home_skeleton_urgent_$idx")
+                            )
+                        }
+                    }
+                }
+            }
+        } else if (urgentProperties.isNotEmpty()) {
+            item {
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "🔥",
+                                fontSize = 14.sp
+                            )
+                            Text(
+                                text = "URGENT PROPERTIES",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
+
+                        Text(
+                            text = if (urgentOnly) "Show All" else "View All",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.clickable { viewModel.toggleUrgentOnly() }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        items(urgentProperties, key = { "urgent_${it.id}" }) { property ->
+                            UrgentPropertyCard(
+                                property = property,
+                                onClick = { viewModel.openPropertyDetails(property) },
+                                onToggleSave = { viewModel.toggleSave(property) },
+                                onContactSeller = { viewModel.openContactSeller(property) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. POPULAR CATEGORIES (Professional Polish Quick Categories)
+        item {
+            Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                Text(
+                    text = "QUICK CATEGORIES",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    letterSpacing = 1.sp
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    PropertyCategory.values().forEach { cat ->
+                        val isSelected = selectedCategory == cat
+                        val catInteraction = remember { MutableInteractionSource() }
+                        val isCatPressed by catInteraction.collectIsPressedAsState()
+                        val catScale by animateFloatAsState(
+                            targetValue = if (isCatPressed) 0.94f else 1.0f,
+                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                            label = "catScale_${cat.name}"
+                        )
+
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f) else CardBorder
+                            ),
+                            modifier = Modifier
+                                .scale(catScale)
+                                .clip(RoundedCornerShape(16.dp))
+                                .clickable(
+                                    interactionSource = catInteraction,
+                                    indication = null
+                                ) { viewModel.selectCategory(cat) }
+                                .testTag("category_chip_${cat.name}")
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .width(78.dp)
+                                    .padding(vertical = 12.dp, horizontal = 6.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .background(
+                                            if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant,
+                                            CircleShape
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(cat.iconEmoji, fontSize = 18.sp)
+                                }
+                                Text(
+                                    text = cat.label,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 5. Active Filters Quick Pill (Urgent Only toggle)
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = urgentOnly,
+                    onClick = { viewModel.toggleUrgentOnly() },
+                    label = { Text("🔥 Urgent Only (1-7 Days)", fontSize = 12.sp) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = UrgencyFlameContainer,
+                        selectedLabelColor = UrgencyFlame
+                    ),
+                    modifier = Modifier.testTag("filter_urgent_toggle")
+                )
+            }
+        }
+
+        // 5b. Recent Searches Row above property list
+        if (recentSearches.isNotEmpty()) {
+            item {
+                RecentSearchesRow(
+                    recentSearches = recentSearches,
+                    currentQuery = searchQuery,
+                    onSelectSearch = { term ->
+                        viewModel.updateSearchQuery(term)
+                    },
+                    onRemoveSearch = { term ->
+                        viewModel.removeRecentSearch(term)
+                    },
+                    onClearAll = {
+                        viewModel.clearRecentSearches()
+                    },
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
+                )
+            }
+        }
+
+        // 6. NEAR YOU (Local Discovery Cards)
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "NEAR ${selectedLocation.uppercase()}",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    letterSpacing = 0.5.sp
+                )
+                Text(
+                    text = "See Map",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clickable { viewModel.setTab(1) }
+                )
+            }
+        }
+
+        // List of Property Cards
+        if (isLoading && filteredProperties.isEmpty()) {
+            items(3) { idx ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    SkeletonPropertyCard(
+                        modifier = Modifier.testTag("home_skeleton_property_card_$idx")
+                    )
+                }
+            }
+        } else if (filteredProperties.isEmpty()) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text("🔍", fontSize = 36.sp)
+                        Text(
+                            text = "No properties found",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = TextPrimary
+                        )
+                        Text(
+                            text = "Try adjusting your search or switching category",
+                            fontSize = 13.sp,
+                            color = TextSecondary
+                        )
+                    }
+                }
+            }
+        } else {
+            items(filteredProperties, key = { it.id }) { property ->
+                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    PropertyCard(
+                        property = property,
+                        onClick = { viewModel.openPropertyDetails(property) },
+                        onToggleSave = { viewModel.toggleSave(property) }
+                    )
+                }
+            }
+        }
+    }
+}
+}

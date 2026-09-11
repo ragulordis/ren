@@ -1,0 +1,6 @@
+{
+  "name": "QuickNest",
+  "description": "India's fast local property marketplace for urgent sales, rentals, and leases with smart buyer matching.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
