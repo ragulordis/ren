@@ -228,9 +228,15 @@ fun LoginScreen(
                             scope.launch {
                                 try {
                                     val credentialManager = CredentialManager.create(context)
+                                    val webClientId = runCatching {
+                                        val resId = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
+                                        if (resId != 0) context.getString(resId) else null
+                                    }.getOrNull()?.takeIf { it.isNotBlank() }
+                                        ?: "509108088458-qu2gfk2lzro5krm7nsrrvh.apps.googleusercontent.com"
+
                                     val googleIdOption = GetGoogleIdOption.Builder()
                                         .setFilterByAuthorizedAccounts(false)
-                                        .setServerClientId("ren-real-estate-oauth")
+                                        .setServerClientId(webClientId)
                                         .setAutoSelectEnabled(false)
                                         .build()
 
@@ -304,13 +310,13 @@ fun LoginScreen(
                         HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFE2E8F0))
                     }
 
-                    // Preferences: User Role Selection
+                    // Preferences: User Intent Selection
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(
-                            text = "I am using Ren as:",
+                            text = "What brings you to Ren?",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = NavyPrimary
@@ -321,9 +327,9 @@ fun LoginScreen(
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             listOf(
-                                UserRole.BUYER to "Buyer / Tenant",
-                                UserRole.INVESTOR to "Investor",
-                                UserRole.OWNER to "Property Owner"
+                                UserRole.BUYER to "🏠 Find a Home",
+                                UserRole.INVESTOR to "📈 Invest",
+                                UserRole.OWNER to "🏷️ Sell Property"
                             ).forEach { (role, label) ->
                                 val isSelected = selectedRole == role
                                 Surface(

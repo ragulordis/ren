@@ -1,4 +1,6 @@
 <resources>
     <string name="app_name">Ren</string>
     <string name="tagline">Find Your Place</string>
+    <!-- Configured Firebase Web OAuth Client ID for Credential Manager -->
+    <string name="default_web_client_id">509108088458-qu2gfk2lzro5krm7nsrrvh.apps.googleusercontent.com</string>
 </resources>

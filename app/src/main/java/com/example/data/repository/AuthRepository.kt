@@ -197,31 +197,31 @@ class AuthRepositoryImpl(
             val initialRole = UserRole.BUYER
 
             val db = firestore
-            if (db != null) {
-                // 1. Write public profile document
-                val publicProfileData = hashMapOf(
-                    "uid" to uid,
-                    "displayName" to displayName.trim(),
-                    "photoUrl" to (firebaseUser.photoUrl?.toString() ?: ""),
-                    "role" to initialRole.name,
-                    "accountStatus" to "ACTIVE",
-                    "verificationStatus" to if (firebaseUser.isEmailVerified) "VERIFIED" else "UNVERIFIED",
-                    "verificationLevel" to 0,
-                    "createdAt" to FieldValue.serverTimestamp(),
-                    "updatedAt" to FieldValue.serverTimestamp()
-                )
-                db.collection("users").document(uid).set(publicProfileData).await()
+                ?: throw AuthException("User profile service unavailable (Firestore unavailable)")
 
-                // 2. Write private profile document (isolated access)
-                val privateProfileData = hashMapOf(
-                    "email" to (firebaseUser.email ?: email.trim()),
-                    "phone" to (firebaseUser.phoneNumber ?: ""),
-                    "updatedAt" to FieldValue.serverTimestamp()
-                )
-                db.collection("users").document(uid)
-                    .collection("private").document("profile")
-                    .set(privateProfileData).await()
-            }
+            // 1. Write public profile document
+            val publicProfileData = hashMapOf(
+                "uid" to uid,
+                "displayName" to displayName.trim(),
+                "photoUrl" to (firebaseUser.photoUrl?.toString() ?: ""),
+                "role" to initialRole.name,
+                "accountStatus" to "ACTIVE",
+                "verificationStatus" to if (firebaseUser.isEmailVerified) "VERIFIED" else "UNVERIFIED",
+                "verificationLevel" to 0,
+                "createdAt" to FieldValue.serverTimestamp(),
+                "updatedAt" to FieldValue.serverTimestamp()
+            )
+            db.collection("users").document(uid).set(publicProfileData).await()
+
+            // 2. Write private profile document (isolated access)
+            val privateProfileData = hashMapOf(
+                "email" to (firebaseUser.email ?: email.trim()),
+                "phone" to (firebaseUser.phoneNumber ?: ""),
+                "updatedAt" to FieldValue.serverTimestamp()
+            )
+            db.collection("users").document(uid)
+                .collection("private").document("profile")
+                .set(privateProfileData).await()
 
             val profile = UserProfile(
                 uid = uid,
@@ -347,21 +347,7 @@ class AuthRepositoryImpl(
     private suspend fun fetchOrCreateUserProfile(firebaseUser: FirebaseUser): UserProfile {
         val uid = firebaseUser.uid
         val db = firestore
-        if (db == null) {
-            val fallbackProfile = UserProfile(
-                uid = uid,
-                displayName = firebaseUser.displayName?.takeIf { it.isNotBlank() } ?: "Ren User",
-                email = firebaseUser.email ?: "",
-                phone = firebaseUser.phoneNumber ?: "",
-                photoUrl = firebaseUser.photoUrl?.toString() ?: "",
-                role = UserRole.BUYER,
-                accountStatus = "ACTIVE",
-                verificationStatus = if (firebaseUser.isEmailVerified) "VERIFIED" else "UNVERIFIED",
-                verificationLevel = if (firebaseUser.isEmailVerified) 1 else 0
-            )
-            sharedUserProfile = fallbackProfile
-            return fallbackProfile
-        }
+            ?: throw AuthException("User profile service unavailable (Firestore unavailable)")
 
         val publicDoc = db.collection("users").document(uid).get().await()
 
