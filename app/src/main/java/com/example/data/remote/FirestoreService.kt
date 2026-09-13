@@ -27,6 +27,7 @@ class FirestoreService {
         return runCatching {
             Property(
                 id = doc.getString("id") ?: doc.id,
+                ownerId = doc.getString("ownerId") ?: "ren_owner_system",
                 title = doc.getString("title") ?: "",
                 description = doc.getString("description") ?: "",
                 listingType = runCatching { ListingType.valueOf(doc.getString("listingType") ?: "BUY") }.getOrDefault(ListingType.BUY),
@@ -176,6 +177,7 @@ class FirestoreService {
         val db = firestore ?: throw IllegalStateException("Firestore not initialized")
         val data = hashMapOf(
             "id" to property.id,
+            "ownerId" to property.ownerId,
             "title" to property.title,
             "description" to property.description,
             "listingType" to property.listingType.name,

@@ -17,13 +17,13 @@ class ScheduleVisitUseCase(
         date: String,
         timeSlot: String
     ): Result<PropertyVisit> = runCatching {
-        val user = authRepository.getCurrentUser()
+        val user = authRepository.currentUser()
         val visit = PropertyVisit(
             id = "visit-${System.currentTimeMillis()}",
             propertyId = property.id,
             propertyTitle = property.title,
             location = property.location,
-            buyerName = user.displayName.ifBlank { "Authenticated Buyer" },
+            buyerName = user?.displayName?.ifBlank { "Buyer" } ?: "Buyer",
             date = date,
             timeSlot = timeSlot,
             status = "Requested"

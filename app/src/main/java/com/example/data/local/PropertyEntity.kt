@@ -20,6 +20,7 @@ import com.example.data.model.SellingSpeed
 )
 data class PropertyEntity(
     @PrimaryKey val id: String,
+    val ownerId: String = "ren_owner_system",
     val title: String,
     val description: String,
     val listingType: String,
@@ -59,6 +60,7 @@ data class PropertyEntity(
     fun toDomain(): Property {
         return Property(
             id = id,
+            ownerId = ownerId,
             title = title,
             description = description,
             listingType = runCatching { ListingType.valueOf(listingType) }.getOrDefault(ListingType.BUY),
@@ -101,6 +103,7 @@ data class PropertyEntity(
         fun fromDomain(property: Property): PropertyEntity {
             return PropertyEntity(
                 id = property.id,
+                ownerId = property.ownerId,
                 title = property.title,
                 description = property.description,
                 listingType = property.listingType.name,

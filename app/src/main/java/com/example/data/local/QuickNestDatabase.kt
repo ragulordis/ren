@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
         PropertyReportEntity::class,
         SearchAlertEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class QuickNestDatabase : RoomDatabase() {

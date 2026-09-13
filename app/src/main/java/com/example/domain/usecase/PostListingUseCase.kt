@@ -38,7 +38,10 @@ class PostListingUseCase(
         require(params.price > 0) { "Price must be greater than zero" }
         require(params.location.isNotBlank()) { "Location is required" }
 
-        val currentUser = authRepository.getCurrentUser()
+        val uid = authRepository.currentUserId()
+            ?: return Result.failure(IllegalStateException("User must be signed in to post a listing"))
+
+        val currentUser = authRepository.currentUser()
 
         val urgencyScore = when (params.speed) {
             SellingSpeed.URGENT -> 5
@@ -62,6 +65,7 @@ class PostListingUseCase(
 
         val newProperty = Property(
             id = "prop-${System.currentTimeMillis()}",
+            ownerId = uid,
             title = params.title.trim(),
             description = params.description.trim(),
             listingType = listingType,
@@ -81,9 +85,9 @@ class PostListingUseCase(
             verificationLevel = 0, // Unverified draft/pending review - client NEVER self-approves!
             imageResName = params.customImageResName ?: fallbackImage,
             featuresList = params.features,
-            ownerName = currentUser.displayName.ifBlank { "Property Owner" },
-            ownerPhone = currentUser.phone.ifBlank { "" },
-            ownerType = currentUser.role.name.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() },
+            ownerName = currentUser?.displayName?.ifBlank { "Property Owner" } ?: "Property Owner",
+            ownerPhone = currentUser?.phone?.ifBlank { "" } ?: "",
+            ownerType = currentUser?.role?.name?.replace("_", " ")?.lowercase()?.replaceFirstChar { it.uppercase() } ?: "Owner",
             isPrivate = params.isPrivate,
             viewsCount = 0,
             savedCount = 0,

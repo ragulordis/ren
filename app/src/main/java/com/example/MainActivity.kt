@@ -200,6 +200,16 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
             },
             onContinueAsGuest = {
                 viewModel.continueAsGuest()
+            },
+            onEmailSignIn = { email, password, onError ->
+                viewModel.signInWithEmail(email, password) { result ->
+                    result.onFailure { onError(it.message ?: "Sign in failed") }
+                }
+            },
+            onEmailSignUp = { name, email, password, role, city, onError ->
+                viewModel.registerWithEmail(email, password, name, role, city) { result ->
+                    result.onFailure { onError(it.message ?: "Registration failed") }
+                }
             }
         )
         return

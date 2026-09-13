@@ -113,6 +113,8 @@ val POPULAR_INDIAN_CITIES = listOf(
 fun LoginScreen(
     onLoginSuccess: (name: String, email: String, role: UserRole, preferredCity: String) -> Unit,
     onContinueAsGuest: () -> Unit,
+    onEmailSignIn: ((email: String, password: String, onError: (String) -> Unit) -> Unit)? = null,
+    onEmailSignUp: ((name: String, email: String, password: String, role: UserRole, preferredCity: String, onError: (String) -> Unit) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
@@ -482,16 +484,29 @@ fun LoginScreen(
                                 return@Button
                             }
                             isLoading = true
-                            scope.launch {
-                                delay(600)
-                                isLoading = false
-                                val displayName = if (isSignUp && nameInput.isNotBlank()) {
-                                    nameInput.trim()
-                                } else {
-                                    emailInput.substringBefore("@").replace(".", " ")
-                                        .replaceFirstChar { it.uppercase() }
+                            errorMessage = null
+                            val displayName = if (isSignUp && nameInput.isNotBlank()) {
+                                nameInput.trim()
+                            } else {
+                                emailInput.substringBefore("@").replace(".", " ")
+                                    .replaceFirstChar { it.uppercase() }
+                            }
+                            if (isSignUp && onEmailSignUp != null) {
+                                onEmailSignUp(displayName, emailInput.trim(), passwordInput, selectedRole, selectedCity) { error ->
+                                    isLoading = false
+                                    errorMessage = error
                                 }
-                                onLoginSuccess(displayName, emailInput.trim(), selectedRole, selectedCity)
+                            } else if (!isSignUp && onEmailSignIn != null) {
+                                onEmailSignIn(emailInput.trim(), passwordInput) { error ->
+                                    isLoading = false
+                                    errorMessage = error
+                                }
+                            } else {
+                                scope.launch {
+                                    delay(500)
+                                    isLoading = false
+                                    onLoginSuccess(displayName, emailInput.trim(), selectedRole, selectedCity)
+                                }
                             }
                         },
                         modifier = Modifier

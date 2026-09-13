@@ -18,11 +18,11 @@ class SendChatMessageUseCase(
 
     suspend fun sendMessage(propertyId: String, text: String): Result<ChatMessage> = runCatching {
         require(text.isNotBlank()) { "Message text cannot be blank" }
-        val user = authRepository.getCurrentUser()
+        val user = authRepository.currentUser()
         val message = ChatMessage(
             id = "m-${System.currentTimeMillis()}",
             propertyId = propertyId,
-            senderName = user.displayName.ifBlank { "Buyer" },
+            senderName = user?.displayName?.ifBlank { "Buyer" } ?: "Buyer",
             message = text.trim(),
             time = "Just now",
             isFromMe = true
@@ -38,8 +38,8 @@ class SendChatMessageUseCase(
         buyerEmail: String,
         buyerPhone: String
     ): Result<ChatMessage> = runCatching {
-        val user = authRepository.getCurrentUser()
-        val senderLabel = buyerEmail.ifBlank { user.displayName.ifBlank { "Buyer" } }
+        val user = authRepository.currentUser()
+        val senderLabel = buyerEmail.ifBlank { user?.displayName?.ifBlank { "Buyer" } ?: "Buyer" }
         val emailLogMsg = ChatMessage(
             id = "m-email-${System.currentTimeMillis()}",
             propertyId = property.id,

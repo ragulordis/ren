@@ -1,5 +1,6 @@
 package com.example.domain.usecase
 
+import com.example.data.model.AuthState
 import com.example.data.model.UserProfile
 import com.example.data.repository.AuthRepository
 import kotlinx.coroutines.flow.Flow
@@ -10,9 +11,10 @@ import kotlinx.coroutines.flow.Flow
 class ObserveUserProfileUseCase(
     private val authRepository: AuthRepository
 ) {
-    val authState: Flow<UserProfile?> = authRepository.authState
+    val authState: Flow<AuthState> = authRepository.authState
 
-    fun getCurrentUser(): UserProfile = authRepository.getCurrentUser()
+    fun getCurrentUser(): UserProfile? = authRepository.currentUser()
 
-    fun getCurrentUserId(): String = authRepository.getCurrentUserId()
+    fun getCurrentUserId(): String? = authRepository.currentUserId()
 }
+

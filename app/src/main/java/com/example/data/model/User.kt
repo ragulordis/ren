@@ -13,11 +13,12 @@ enum class UserRole {
 
 data class UserProfile(
     val uid: String,
-    val displayName: String = "Guest User",
+    val displayName: String = "User",
     val email: String = "",
     val phone: String = "",
     val photoUrl: String = "",
     val role: UserRole = UserRole.BUYER,
+    val accountStatus: String = "ACTIVE",
     val verificationStatus: String = "UNVERIFIED",
     val verificationLevel: Int = 0,
     val createdAt: Long = System.currentTimeMillis()

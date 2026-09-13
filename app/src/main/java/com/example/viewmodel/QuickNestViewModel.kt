@@ -42,6 +42,13 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
     private val _isLoggedIn = MutableStateFlow(prefs.getBoolean("is_logged_in", false))
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
 
+    val authState: StateFlow<com.example.data.model.AuthState> = authRepository.authState
+        .stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            com.example.data.model.AuthState.Loading
+        )
+
     // Domain Use Cases
     private val getPropertiesUseCase = com.example.domain.usecase.GetPropertiesUseCase(com.example.data.repository.PropertyRepositoryImpl(QuickNestDatabase.getInstance(application).propertyDao()))
     private val scheduleVisitUseCase = com.example.domain.usecase.ScheduleVisitUseCase(com.example.data.repository.PropertyRepositoryImpl(QuickNestDatabase.getInstance(application).propertyDao()), authRepository)
@@ -82,9 +89,28 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
 
         // Observe real Firebase Auth state changes
         viewModelScope.launch {
-            authRepository.authState.collect { user ->
-                if (user != null) {
-                    _currentUserProfile.value = user
+            authRepository.authState.collect { state ->
+                when (state) {
+                    is com.example.data.model.AuthState.SignedIn -> {
+                        _currentUserProfile.value = state.user
+                        _isLoggedIn.value = true
+                        prefs.edit()
+                            .putBoolean("is_logged_in", true)
+                            .putString("user_uid", state.user.uid)
+                            .putString("user_name", state.user.displayName)
+                            .putString("user_email", state.user.email)
+                            .putString("user_role", state.user.role.name)
+                            .apply()
+                    }
+                    is com.example.data.model.AuthState.SignedOut -> {
+                        if (!prefs.getBoolean("is_guest_mode", false)) {
+                            // If not in explicit guest mode
+                            _isLoggedIn.value = false
+                        }
+                    }
+                    is com.example.data.model.AuthState.Loading -> {
+                        // Loading state
+                    }
                 }
             }
         }
@@ -549,70 +575,162 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
         _isOnboarded.value = true
     }
 
-    fun loginWithGoogle(name: String, email: String, role: UserRole, preferredCity: String) {
-        val profile = UserProfile(
-            uid = "ren_google_${email.hashCode()}",
-            displayName = name.ifBlank { "Ren Member" },
-            email = email,
-            phone = "+91 98401 55678",
-            photoUrl = "",
-            role = role,
-            verificationStatus = "VERIFIED",
-            verificationLevel = 3
-        )
-        prefs.edit()
-            .putBoolean("is_logged_in", true)
-            .putBoolean("is_onboarded", true)
-            .putString("user_uid", profile.uid)
-            .putString("user_name", profile.displayName)
-            .putString("user_email", profile.email)
-            .putString("user_role", profile.role.name)
-            .putString("preferred_city", preferredCity)
-            .apply()
-
-        _currentUserProfile.value = profile
-        _isOnboarded.value = true
-        _isLoggedIn.value = true
-        if (preferredCity != "All Locations") {
-            selectLocation(preferredCity)
+    fun signInWithEmail(
+        email: String,
+        password: String,
+        onResult: (Result<UserProfile>) -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            val result = authRepository.signInWithEmail(email, password)
+            _isLoading.value = false
+            result.onSuccess { profile ->
+                _currentUserProfile.value = profile
+                _isLoggedIn.value = true
+                prefs.edit()
+                    .putBoolean("is_logged_in", true)
+                    .putBoolean("is_onboarded", true)
+                    .putBoolean("is_guest_mode", false)
+                    .putString("user_uid", profile.uid)
+                    .putString("user_name", profile.displayName)
+                    .putString("user_email", profile.email)
+                    .putString("user_role", profile.role.name)
+                    .apply()
+                _feedbackMessage.value = "Welcome back, ${profile.displayName}!"
+            }.onFailure { err ->
+                _feedbackMessage.value = err.message ?: "Sign-in failed"
+            }
+            onResult(result)
         }
-        _feedbackMessage.value = "Welcome back, ${profile.displayName}! Signed in with Google."
     }
 
-    fun loginWithEmail(name: String, email: String, role: UserRole, preferredCity: String) {
-        val profile = UserProfile(
-            uid = "ren_email_${email.hashCode()}",
-            displayName = name.ifBlank { "Ren User" },
-            email = email,
-            phone = "+91 98401 55678",
-            photoUrl = "",
-            role = role,
-            verificationStatus = "VERIFIED",
-            verificationLevel = 2
-        )
-        prefs.edit()
-            .putBoolean("is_logged_in", true)
-            .putBoolean("is_onboarded", true)
-            .putString("user_uid", profile.uid)
-            .putString("user_name", profile.displayName)
-            .putString("user_email", profile.email)
-            .putString("user_role", profile.role.name)
-            .putString("preferred_city", preferredCity)
-            .apply()
-
-        _currentUserProfile.value = profile
-        _isOnboarded.value = true
-        _isLoggedIn.value = true
-        if (preferredCity != "All Locations") {
-            selectLocation(preferredCity)
+    fun registerWithEmail(
+        email: String,
+        password: String,
+        displayName: String,
+        role: UserRole,
+        preferredCity: String = "All Locations",
+        onResult: (Result<UserProfile>) -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            val result = authRepository.registerWithEmail(email, password, displayName, role)
+            _isLoading.value = false
+            result.onSuccess { profile ->
+                _currentUserProfile.value = profile
+                _isLoggedIn.value = true
+                prefs.edit()
+                    .putBoolean("is_logged_in", true)
+                    .putBoolean("is_onboarded", true)
+                    .putBoolean("is_guest_mode", false)
+                    .putString("user_uid", profile.uid)
+                    .putString("user_name", profile.displayName)
+                    .putString("user_email", profile.email)
+                    .putString("user_role", profile.role.name)
+                    .putString("preferred_city", preferredCity)
+                    .apply()
+                if (preferredCity != "All Locations") {
+                    selectLocation(preferredCity)
+                }
+                _feedbackMessage.value = "Welcome to Ren, ${profile.displayName}!"
+            }.onFailure { err ->
+                _feedbackMessage.value = err.message ?: "Registration failed"
+            }
+            onResult(result)
         }
-        _feedbackMessage.value = "Welcome to Ren, ${profile.displayName}!"
+    }
+
+    fun signInWithGoogle(
+        idToken: String,
+        preferredCity: String = "All Locations",
+        onResult: (Result<UserProfile>) -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            val result = authRepository.signInWithGoogle(idToken)
+            _isLoading.value = false
+            result.onSuccess { profile ->
+                _currentUserProfile.value = profile
+                _isLoggedIn.value = true
+                prefs.edit()
+                    .putBoolean("is_logged_in", true)
+                    .putBoolean("is_onboarded", true)
+                    .putBoolean("is_guest_mode", false)
+                    .putString("user_uid", profile.uid)
+                    .putString("user_name", profile.displayName)
+                    .putString("user_email", profile.email)
+                    .putString("user_role", profile.role.name)
+                    .putString("preferred_city", preferredCity)
+                    .apply()
+                if (preferredCity != "All Locations") {
+                    selectLocation(preferredCity)
+                }
+                _feedbackMessage.value = "Signed in with Google as ${profile.displayName}"
+            }.onFailure { err ->
+                _feedbackMessage.value = err.message ?: "Google Sign-In failed"
+            }
+            onResult(result)
+        }
+    }
+
+    fun loginWithGoogle(name: String, email: String, role: UserRole, preferredCity: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            val safeRole = when (role) {
+                UserRole.ADMIN, UserRole.MODERATOR -> UserRole.BUYER
+                else -> role
+            }
+            val uid = "ren_google_${Math.abs(email.hashCode())}"
+            val profile = UserProfile(
+                uid = uid,
+                displayName = name.ifBlank { "Ren Member" },
+                email = email,
+                phone = "+91 98401 55678",
+                photoUrl = "",
+                role = safeRole,
+                accountStatus = "ACTIVE",
+                verificationStatus = "VERIFIED",
+                verificationLevel = 2
+            )
+            prefs.edit()
+                .putBoolean("is_logged_in", true)
+                .putBoolean("is_onboarded", true)
+                .putBoolean("is_guest_mode", false)
+                .putString("user_uid", profile.uid)
+                .putString("user_name", profile.displayName)
+                .putString("user_email", profile.email)
+                .putString("user_role", profile.role.name)
+                .putString("preferred_city", preferredCity)
+                .apply()
+
+            _currentUserProfile.value = profile
+            _isOnboarded.value = true
+            _isLoggedIn.value = true
+            _isLoading.value = false
+            if (preferredCity != "All Locations") {
+                selectLocation(preferredCity)
+            }
+            _feedbackMessage.value = "Welcome to Ren, ${profile.displayName}!"
+        }
+    }
+
+    fun sendPasswordReset(email: String, onResult: (Result<Unit>) -> Unit = {}) {
+        viewModelScope.launch {
+            val result = authRepository.sendPasswordReset(email)
+            result.onSuccess {
+                _feedbackMessage.value = "Password reset link sent to $email"
+            }.onFailure { err ->
+                _feedbackMessage.value = err.message ?: "Failed to send reset email"
+            }
+            onResult(result)
+        }
     }
 
     fun continueAsGuest() {
         prefs.edit()
             .putBoolean("is_logged_in", true)
             .putBoolean("is_onboarded", true)
+            .putBoolean("is_guest_mode", true)
             .apply()
         _isOnboarded.value = true
         _isLoggedIn.value = true
@@ -622,9 +740,12 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
     fun logout() {
         prefs.edit()
             .putBoolean("is_logged_in", false)
+            .putBoolean("is_guest_mode", false)
             .apply()
         _isLoggedIn.value = false
-        authRepository.signOut()
+        viewModelScope.launch {
+            authRepository.signOut()
+        }
         _feedbackMessage.value = "Signed out successfully"
     }
 

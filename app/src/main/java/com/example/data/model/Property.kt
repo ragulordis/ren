@@ -29,6 +29,7 @@ enum class PropertyCategory(val label: String, val iconEmoji: String) {
 
 data class Property(
     val id: String,
+    val ownerId: String = "ren_owner_system",
     val title: String,
     val description: String,
     val listingType: ListingType,
@@ -64,7 +65,7 @@ data class Property(
     val mapLng: Double = 79.8350,
     val isPrivate: Boolean = false,
     val status: String = "Active",
-    val ownerEmail: String = "${ownerName.lowercase().replace(" ", "").filter { it.isLetterOrDigit() }}@quicknest.in"
+    val ownerEmail: String = "${ownerName.lowercase().replace(" ", "").filter { it.isLetterOrDigit() }}@ren.in"
 ) {
     val formattedPrice: String
         get() = formatIndianCurrency(price, listingType)
