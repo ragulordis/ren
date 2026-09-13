@@ -6,6 +6,10 @@ sealed interface AuthState {
     data class SignedIn(
         val user: UserProfile
     ) : AuthState
+    data class Error(
+        val message: String,
+        val cause: Throwable? = null
+    ) : AuthState
 }
 
 open class AuthException(message: String, cause: Throwable? = null) : Exception(message, cause)

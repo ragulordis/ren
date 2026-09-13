@@ -188,7 +188,7 @@ fun HomeScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "${currentUserProfile.displayName.ifBlank { "Explorer" }} 👋",
+                            text = "${currentUserProfile?.displayName?.ifBlank { "Explorer" } ?: "Explorer"} 👋",
                             fontSize = 21.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface

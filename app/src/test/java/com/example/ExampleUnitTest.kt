@@ -13,6 +13,7 @@ class ExampleUnitTest {
     private val sampleProperties = listOf(
         Property(
             id = "1",
+            ownerId = "owner-1",
             title = "2BHK Kottakuppam Apartment",
             description = "Spacious apartment",
             listingType = ListingType.BUY,
@@ -32,6 +33,7 @@ class ExampleUnitTest {
         ),
         Property(
             id = "2",
+            ownerId = "owner-2",
             title = "Auroville Eco Villa",
             description = "Modern sustainable villa",
             listingType = ListingType.BUY,
@@ -51,6 +53,7 @@ class ExampleUnitTest {
         ),
         Property(
             id = "3",
+            ownerId = "owner-3",
             title = "Pondicherry Beach House",
             description = "Near Serenity Beach",
             listingType = ListingType.RENT,
@@ -100,6 +103,7 @@ class ExampleUnitTest {
     fun propertyEntity_storesTitleLocationPriceAndCategory_correctly() {
         val entity = com.example.data.local.PropertyEntity(
             id = "test-prop-1",
+            ownerId = "owner-101",
             title = "Modern 3BHK Apartment for Rent",
             description = "Walk to beach",
             listingType = "RENT",
@@ -214,17 +218,17 @@ class ExampleUnitTest {
     @Test
     fun contactSeller_generatesValidOwnerEmail() {
         val property = sampleProperties[0]
-        assertEquals("kumar@quicknest.in", property.ownerEmail)
+        assertEquals("kumar@ren.in", property.ownerEmail)
         assertTrue(property.ownerEmail.contains("@"))
-        assertTrue(property.ownerEmail.endsWith("quicknest.in"))
+        assertTrue(property.ownerEmail.endsWith("ren.in"))
     }
 
     @Test
     fun contactSeller_formatsInquirySubjectAndGreetingCorrectly() {
         val property = sampleProperties[0]
-        val subject = "[QuickNest Inquiry] ${property.title} (${property.formattedPrice})"
+        val subject = "[Ren Inquiry] ${property.title} (${property.formattedPrice})"
         assertTrue(subject.contains("2BHK Kottakuppam Apartment"))
-        assertTrue(subject.contains("QuickNest Inquiry"))
+        assertTrue(subject.contains("Ren Inquiry"))
     }
 
     @Test

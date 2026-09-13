@@ -34,7 +34,7 @@ abstract class QuickNestDatabase : RoomDatabase() {
                     QuickNestDatabase::class.java,
                     "quicknest_db"
                 )
-                    .fallbackToDestructiveMigration()
+                    .addMigrations(MIGRATION_3_4)
                     .build()
                 INSTANCE = instance
                 instance

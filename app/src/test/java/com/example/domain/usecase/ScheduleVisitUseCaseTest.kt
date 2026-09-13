@@ -25,6 +25,7 @@ class ScheduleVisitUseCaseTest {
         useCase = ScheduleVisitUseCase(fakeRepository, authRepository)
         sampleProperty = Property(
             id = "prop-123",
+            ownerId = "owner-123",
             title = "Beachside Villa",
             description = "Near shoreline",
             listingType = ListingType.BUY,

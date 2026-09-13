@@ -11,20 +11,23 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // User public profiles
+    // User public profiles (contains only public info: displayName, photoUrl, role, accountStatus)
     match /users/{userId} {
       allow read: if isAuthenticated();
-      // Client cannot elevate itself to ADMIN or MODERATOR, and cannot self-elevate verificationLevel
+      // Server-authoritative role: client can only create initial BUYER role, cannot escalate role on update
       allow create: if isOwner(userId)
-                    && (!('role' in request.resource.data) || request.resource.data.role in ['BUYER', 'SELLER', 'INVESTOR', 'OWNER', 'TENANT'])
-                    && (!('verificationLevel' in request.resource.data) || request.resource.data.verificationLevel <= 1);
+                    && (!('role' in request.resource.data) || request.resource.data.role == 'BUYER')
+                    && (!('verificationLevel' in request.resource.data) || request.resource.data.verificationLevel == 0)
+                    && (!('accountStatus' in request.resource.data) || request.resource.data.accountStatus == 'ACTIVE');
       allow update: if isOwner(userId)
-                    && (!('role' in request.resource.data) || request.resource.data.role == resource.data.role || request.resource.data.role in ['BUYER', 'SELLER', 'INVESTOR', 'OWNER', 'TENANT'])
-                    && (!('verificationLevel' in request.resource.data) || request.resource.data.verificationLevel == resource.data.verificationLevel);
+                    // Role and verificationLevel are locked from client tampering
+                    && (!('role' in request.resource.data) || request.resource.data.role == resource.data.role)
+                    && (!('verificationLevel' in request.resource.data) || request.resource.data.verificationLevel == resource.data.verificationLevel)
+                    && (!('accountStatus' in request.resource.data) || request.resource.data.accountStatus == resource.data.accountStatus);
       allow delete: if false; // Deletion handled via secure account deletion cloud function
     }
 
-    // User private profiles
+    // User private profiles - accessible ONLY by the profile owner (contains email, phone, private prefs)
     match /users/{userId}/private/profile {
       allow read, write: if isOwner(userId);
     }

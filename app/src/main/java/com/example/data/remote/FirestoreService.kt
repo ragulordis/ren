@@ -25,9 +25,10 @@ class FirestoreService {
 
     private fun parseDocToProperty(doc: DocumentSnapshot): Property? {
         return runCatching {
+            val ownerId = doc.getString("ownerId")?.takeIf { it.isNotBlank() } ?: return@runCatching null
             Property(
                 id = doc.getString("id") ?: doc.id,
-                ownerId = doc.getString("ownerId") ?: "ren_owner_system",
+                ownerId = ownerId,
                 title = doc.getString("title") ?: "",
                 description = doc.getString("description") ?: "",
                 listingType = runCatching { ListingType.valueOf(doc.getString("listingType") ?: "BUY") }.getOrDefault(ListingType.BUY),

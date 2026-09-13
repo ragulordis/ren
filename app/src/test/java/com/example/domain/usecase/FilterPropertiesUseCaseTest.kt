@@ -131,6 +131,7 @@ class FilterPropertiesUseCaseTest {
     ): Property {
         return Property(
             id = id,
+            ownerId = "owner-test",
             title = title,
             description = "Test description",
             listingType = if (category == PropertyCategory.RENT) ListingType.RENT else ListingType.BUY,

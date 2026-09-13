@@ -39,7 +39,7 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
     private val _isOnboarded = MutableStateFlow(prefs.getBoolean("is_onboarded", false))
     val isOnboarded: StateFlow<Boolean> = _isOnboarded.asStateFlow()
 
-    private val _isLoggedIn = MutableStateFlow(prefs.getBoolean("is_logged_in", false))
+    private val _isLoggedIn = MutableStateFlow(prefs.getBoolean("is_guest_mode", false))
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
 
     val authState: StateFlow<com.example.data.model.AuthState> = authRepository.authState
@@ -56,23 +56,10 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
     private val smartMatchUseCase = com.example.domain.usecase.SmartMatchUseCase(com.example.data.repository.PropertyRepositoryImpl(QuickNestDatabase.getInstance(application).propertyDao()))
     private val toggleSaveUseCase = com.example.domain.usecase.ToggleSavePropertyUseCase(com.example.data.repository.PropertyRepositoryImpl(QuickNestDatabase.getInstance(application).propertyDao()))
     private val observeUserProfileUseCase = com.example.domain.usecase.ObserveUserProfileUseCase(authRepository)
+    private val postListingUseCase: com.example.domain.usecase.PostListingUseCase
 
-    private val _currentUserProfile = MutableStateFlow(
-        UserProfile(
-            uid = prefs.getString("user_uid", "ren_user_1") ?: "ren_user_1",
-            displayName = prefs.getString("user_name", "Ragul Ordis") ?: "Ragul Ordis",
-            email = prefs.getString("user_email", "ragulordis@gmail.com") ?: "ragulordis@gmail.com",
-            phone = prefs.getString("user_phone", "+91 98401 55678") ?: "+91 98401 55678",
-            role = try {
-                UserRole.valueOf(prefs.getString("user_role", UserRole.BUYER.name) ?: UserRole.BUYER.name)
-            } catch (e: Exception) {
-                UserRole.BUYER
-            },
-            verificationStatus = "VERIFIED",
-            verificationLevel = 2
-        )
-    )
-    val currentUserProfile: StateFlow<com.example.data.model.UserProfile> = _currentUserProfile.asStateFlow()
+    private val _currentUserProfile = MutableStateFlow<UserProfile?>(null)
+    val currentUserProfile: StateFlow<UserProfile?> = _currentUserProfile.asStateFlow()
 
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -86,6 +73,7 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
     init {
         val db = QuickNestDatabase.getInstance(application)
         repository = com.example.data.repository.PropertyRepositoryImpl(db.propertyDao(), firestoreService)
+        postListingUseCase = com.example.domain.usecase.PostListingUseCase(repository, authRepository)
 
         // Observe real Firebase Auth state changes
         viewModelScope.launch {
@@ -94,24 +82,38 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
                     is com.example.data.model.AuthState.SignedIn -> {
                         _currentUserProfile.value = state.user
                         _isLoggedIn.value = true
-                        prefs.edit()
-                            .putBoolean("is_logged_in", true)
-                            .putString("user_uid", state.user.uid)
-                            .putString("user_name", state.user.displayName)
-                            .putString("user_email", state.user.email)
-                            .putString("user_role", state.user.role.name)
-                            .apply()
                     }
                     is com.example.data.model.AuthState.SignedOut -> {
+                        _currentUserProfile.value = null
                         if (!prefs.getBoolean("is_guest_mode", false)) {
-                            // If not in explicit guest mode
                             _isLoggedIn.value = false
                         }
+                    }
+                    is com.example.data.model.AuthState.Error -> {
+                        _currentUserProfile.value = null
+                        if (!prefs.getBoolean("is_guest_mode", false)) {
+                            _isLoggedIn.value = false
+                        }
+                        _feedbackMessage.value = state.message
                     }
                     is com.example.data.model.AuthState.Loading -> {
                         // Loading state
                     }
                 }
+            }
+        }
+
+        // Restore saved session if available
+        val savedEmail = prefs.getString("user_email", null)
+        val savedName = prefs.getString("user_name", null)
+        if (!savedEmail.isNullOrBlank() && !prefs.getBoolean("is_guest_mode", false)) {
+            viewModelScope.launch {
+                authRepository.signInWithGoogleAccount(
+                    email = savedEmail,
+                    displayName = savedName ?: "Ren Member",
+                    photoUrl = null,
+                    role = UserRole.BUYER
+                )
             }
         }
 
@@ -585,16 +587,9 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
             val result = authRepository.signInWithEmail(email, password)
             _isLoading.value = false
             result.onSuccess { profile ->
-                _currentUserProfile.value = profile
-                _isLoggedIn.value = true
                 prefs.edit()
-                    .putBoolean("is_logged_in", true)
                     .putBoolean("is_onboarded", true)
                     .putBoolean("is_guest_mode", false)
-                    .putString("user_uid", profile.uid)
-                    .putString("user_name", profile.displayName)
-                    .putString("user_email", profile.email)
-                    .putString("user_role", profile.role.name)
                     .apply()
                 _feedbackMessage.value = "Welcome back, ${profile.displayName}!"
             }.onFailure { err ->
@@ -617,17 +612,9 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
             val result = authRepository.registerWithEmail(email, password, displayName, role)
             _isLoading.value = false
             result.onSuccess { profile ->
-                _currentUserProfile.value = profile
-                _isLoggedIn.value = true
                 prefs.edit()
-                    .putBoolean("is_logged_in", true)
                     .putBoolean("is_onboarded", true)
                     .putBoolean("is_guest_mode", false)
-                    .putString("user_uid", profile.uid)
-                    .putString("user_name", profile.displayName)
-                    .putString("user_email", profile.email)
-                    .putString("user_role", profile.role.name)
-                    .putString("preferred_city", preferredCity)
                     .apply()
                 if (preferredCity != "All Locations") {
                     selectLocation(preferredCity)
@@ -652,15 +639,13 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
             result.onSuccess { profile ->
                 _currentUserProfile.value = profile
                 _isLoggedIn.value = true
+                _isOnboarded.value = true
                 prefs.edit()
-                    .putBoolean("is_logged_in", true)
                     .putBoolean("is_onboarded", true)
                     .putBoolean("is_guest_mode", false)
-                    .putString("user_uid", profile.uid)
-                    .putString("user_name", profile.displayName)
                     .putString("user_email", profile.email)
-                    .putString("user_role", profile.role.name)
-                    .putString("preferred_city", preferredCity)
+                    .putString("user_name", profile.displayName)
+                    .putString("user_uid", profile.uid)
                     .apply()
                 if (preferredCity != "All Locations") {
                     selectLocation(preferredCity)
@@ -673,44 +658,40 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun loginWithGoogle(name: String, email: String, role: UserRole, preferredCity: String) {
+    fun loginWithGoogle(
+        name: String,
+        email: String,
+        role: UserRole,
+        preferredCity: String,
+        photoUrl: String? = null
+    ) {
         viewModelScope.launch {
             _isLoading.value = true
-            val safeRole = when (role) {
-                UserRole.ADMIN, UserRole.MODERATOR -> UserRole.BUYER
-                else -> role
-            }
-            val uid = "ren_google_${Math.abs(email.hashCode())}"
-            val profile = UserProfile(
-                uid = uid,
-                displayName = name.ifBlank { "Ren Member" },
+            val result = authRepository.signInWithGoogleAccount(
                 email = email,
-                phone = "+91 98401 55678",
-                photoUrl = "",
-                role = safeRole,
-                accountStatus = "ACTIVE",
-                verificationStatus = "VERIFIED",
-                verificationLevel = 2
+                displayName = name,
+                photoUrl = photoUrl,
+                role = role
             )
-            prefs.edit()
-                .putBoolean("is_logged_in", true)
-                .putBoolean("is_onboarded", true)
-                .putBoolean("is_guest_mode", false)
-                .putString("user_uid", profile.uid)
-                .putString("user_name", profile.displayName)
-                .putString("user_email", profile.email)
-                .putString("user_role", profile.role.name)
-                .putString("preferred_city", preferredCity)
-                .apply()
-
-            _currentUserProfile.value = profile
-            _isOnboarded.value = true
-            _isLoggedIn.value = true
             _isLoading.value = false
-            if (preferredCity != "All Locations") {
-                selectLocation(preferredCity)
+            result.onSuccess { profile ->
+                _currentUserProfile.value = profile
+                _isLoggedIn.value = true
+                _isOnboarded.value = true
+                prefs.edit()
+                    .putBoolean("is_onboarded", true)
+                    .putBoolean("is_guest_mode", false)
+                    .putString("user_email", profile.email)
+                    .putString("user_name", profile.displayName)
+                    .putString("user_uid", profile.uid)
+                    .apply()
+                if (preferredCity != "All Locations") {
+                    selectLocation(preferredCity)
+                }
+                _feedbackMessage.value = "Welcome to Ren, ${profile.displayName}!"
+            }.onFailure { err ->
+                _feedbackMessage.value = err.message ?: "Authentication failed"
             }
-            _feedbackMessage.value = "Welcome to Ren, ${profile.displayName}!"
         }
     }
 
@@ -728,10 +709,10 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun continueAsGuest() {
         prefs.edit()
-            .putBoolean("is_logged_in", true)
             .putBoolean("is_onboarded", true)
             .putBoolean("is_guest_mode", true)
             .apply()
+        _currentUserProfile.value = null
         _isOnboarded.value = true
         _isLoggedIn.value = true
         _feedbackMessage.value = "Browsing Ren listings across India as Guest"
@@ -739,9 +720,12 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun logout() {
         prefs.edit()
-            .putBoolean("is_logged_in", false)
             .putBoolean("is_guest_mode", false)
+            .remove("user_email")
+            .remove("user_name")
+            .remove("user_uid")
             .apply()
+        _currentUserProfile.value = null
         _isLoggedIn.value = false
         viewModelScope.launch {
             authRepository.signOut()
@@ -1058,59 +1042,35 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
         features: List<String>,
         isPrivate: Boolean
     ) {
+        if (!authRepository.isAuthenticated()) {
+            _feedbackMessage.value = "Please sign in with your Ren account to post listings"
+            return
+        }
         viewModelScope.launch {
-            val urgencyScore = when (speed) {
-                SellingSpeed.URGENT -> 5
-                SellingSpeed.FAST -> 4
-                SellingSpeed.PRIVATE -> 4
-                SellingSpeed.NORMAL -> 2
-            }
-            val user = _currentUserProfile.value
-            val newProp = Property(
-                id = "prop-${System.currentTimeMillis()}",
+            val params = com.example.domain.usecase.PostListingParams(
                 title = title,
                 description = description,
-                listingType = when (category) {
-                    PropertyCategory.RENT -> ListingType.RENT
-                    PropertyCategory.LEASE -> ListingType.LEASE
-                    else -> if (speed == SellingSpeed.URGENT) ListingType.URGENT_SALE else ListingType.BUY
-                },
-                sellingSpeed = speed,
-                category = category,
-                propertyType = propertyType,
                 price = price,
-                originalPrice = marketEstimate,
                 marketEstimate = marketEstimate,
                 location = location,
-                approximateArea = "Near $location Center (~500m)",
-                distanceKm = 1.0,
+                category = category,
+                propertyType = propertyType,
+                speed = speed,
                 bedrooms = bedrooms,
                 bathrooms = bathrooms,
                 areaSqFt = areaSqFt,
-                urgencyScore = urgencyScore,
-                verificationLevel = 0, // Unverified draft/pending review - client NEVER sets level 3!
-                imageResName = when (category) {
-                    PropertyCategory.LAND -> "prop_land_plot"
-                    PropertyCategory.RENT -> "prop_beach_serenity"
-                    PropertyCategory.LEASE -> "prop_villa_auroville"
-                    else -> "prop_house_kottakuppam"
-                },
-                featuresList = features,
-                ownerName = user.displayName.ifBlank { "Property Owner" },
-                ownerPhone = user.phone.ifBlank { "" },
-                ownerType = "Owner",
-                isPrivate = isPrivate,
-                viewsCount = 0,
-                savedCount = 0,
-                messagesCount = 0,
-                visitRequestsCount = 0,
-                interestedBuyersCount = 0 // Real count starts at zero
+                features = features,
+                isPrivate = isPrivate
             )
-            repository.addProperty(newProp)
-            _feedbackMessage.value = "Property posted successfully! QuickMatch activated."
-            // Immediately trigger QuickMatch sheet for the newly posted property
-            _quickMatchProperty.value = newProp
-            _currentTab.value = 0 // Switch to Home
+            val result = postListingUseCase(params)
+            result.onSuccess { newProp ->
+                _feedbackMessage.value = "Property posted successfully! QuickMatch activated."
+                // Immediately trigger QuickMatch sheet for the newly posted property
+                _quickMatchProperty.value = newProp
+                _currentTab.value = 0 // Switch to Home
+            }.onFailure { err ->
+                _feedbackMessage.value = err.message ?: "Failed to post listing"
+            }
         }
     }
 

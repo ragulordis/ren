@@ -26,6 +26,7 @@ class SmartMatchUseCaseTest {
     fun `smart match ranks higher for exact location and budget match`() = runBlocking {
         val perfectMatch = Property(
             id = "p1",
+            ownerId = "owner-p1",
             title = "Kottakuppam 2BHK Home",
             description = "Near market",
             listingType = ListingType.BUY,
@@ -46,6 +47,7 @@ class SmartMatchUseCaseTest {
 
         val poorMatch = Property(
             id = "p2",
+            ownerId = "owner-p2",
             title = "Auroville Farmland",
             description = "Far away",
             listingType = ListingType.BUY,

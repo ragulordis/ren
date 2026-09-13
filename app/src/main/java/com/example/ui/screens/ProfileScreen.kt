@@ -80,8 +80,14 @@ fun ProfileScreen(
 
     val roles = listOf("Individual", "Property Owner", "Broker", "Builder", "Investor")
 
-    val initials = remember(currentUserProfile.displayName) {
-        currentUserProfile.displayName
+    val profile = currentUserProfile
+    val displayName = profile?.displayName?.ifBlank { "User Account" } ?: "Guest User"
+    val email = profile?.email ?: "Not signed in"
+    val verificationLevel = profile?.verificationLevel ?: 0
+    val uid = profile?.uid ?: ""
+
+    val initials = remember(displayName) {
+        displayName
             .split(" ")
             .filter { it.isNotBlank() }
             .mapNotNull { it.firstOrNull()?.uppercase() }
@@ -130,12 +136,12 @@ fun ProfileScreen(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 Text(
-                                    text = currentUserProfile.displayName.ifBlank { "User Account" },
+                                    text = displayName,
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = TextPrimary
                                 )
-                                if (currentUserProfile.verificationLevel > 0) {
+                                if (verificationLevel > 0) {
                                     Icon(
                                         Icons.Default.VerifiedUser,
                                         contentDescription = "Verified",
@@ -145,7 +151,7 @@ fun ProfileScreen(
                                 }
                             }
                             Text(
-                                text = if (currentUserProfile.email.isNotBlank()) currentUserProfile.email else "UID: ${currentUserProfile.uid.take(12)}",
+                                text = if (email.isNotBlank() && email != "Not signed in") email else if (uid.isNotBlank()) "UID: ${uid.take(12)}" else "Browsing as Guest",
                                 fontSize = 12.sp,
                                 color = TextSecondary
                             )
@@ -155,11 +161,11 @@ fun ProfileScreen(
                             ) {
                                 Surface(
                                     shape = RoundedCornerShape(6.dp),
-                                    color = if (currentUserProfile.verificationLevel > 0) VerifiedGreenContainer else MaterialTheme.colorScheme.surfaceVariant
+                                    color = if (verificationLevel > 0) VerifiedGreenContainer else MaterialTheme.colorScheme.surfaceVariant
                                 ) {
                                     Text(
-                                        text = if (currentUserProfile.verificationLevel > 0) "Level ${currentUserProfile.verificationLevel} Verified" else "Pending Verification",
-                                        color = if (currentUserProfile.verificationLevel > 0) VerifiedGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        text = if (verificationLevel > 0) "Level $verificationLevel Verified" else if (profile != null) "Pending Verification" else "Guest Mode",
+                                        color = if (verificationLevel > 0) VerifiedGreen else MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)

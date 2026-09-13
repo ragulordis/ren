@@ -25,6 +25,7 @@ class ToggleSavePropertyUseCaseTest {
     fun `toggling unsaved property saves it`() = runBlocking {
         val property = Property(
             id = "test-prop-1",
+            ownerId = "owner-1",
             title = "Test House",
             description = "Description",
             listingType = ListingType.BUY,
@@ -53,6 +54,7 @@ class ToggleSavePropertyUseCaseTest {
     fun `toggling saved property unsaves it`() = runBlocking {
         val property = Property(
             id = "test-prop-2",
+            ownerId = "owner-2",
             title = "Saved House",
             description = "Description",
             listingType = ListingType.BUY,

@@ -20,7 +20,7 @@ import com.example.data.model.SellingSpeed
 )
 data class PropertyEntity(
     @PrimaryKey val id: String,
-    val ownerId: String = "ren_owner_system",
+    val ownerId: String,
     val title: String,
     val description: String,
     val listingType: String,

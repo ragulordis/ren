@@ -2,8 +2,10 @@ package com.example.ui
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.example.MainActivity
 import org.junit.Rule
 import org.junit.Test
@@ -21,6 +23,18 @@ class QuickNestCujRobolectricTest {
     @Test
     fun testBottomNavigationAndTabs() {
         composeTestRule.waitForIdle()
+
+        // If onboarding is displayed, skip through to main app
+        if (composeTestRule.onAllNodesWithTag("onboarding_skip_button").fetchSemanticsNodes().isNotEmpty()) {
+            composeTestRule.onNodeWithTag("onboarding_skip_button").performClick()
+            composeTestRule.waitForIdle()
+        }
+
+        // If login screen is displayed, continue as guest
+        if (composeTestRule.onAllNodesWithTag("guest_login_button").fetchSemanticsNodes().isNotEmpty()) {
+            composeTestRule.onNodeWithTag("guest_login_button").performScrollTo().performClick()
+            composeTestRule.waitForIdle()
+        }
 
         // 1. Verify Bottom Navigation Bar is displayed
         composeTestRule.onNodeWithTag("bottom_navigation_bar").assertIsDisplayed()

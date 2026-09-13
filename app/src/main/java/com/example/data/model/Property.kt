@@ -29,7 +29,7 @@ enum class PropertyCategory(val label: String, val iconEmoji: String) {
 
 data class Property(
     val id: String,
-    val ownerId: String = "ren_owner_system",
+    val ownerId: String,
     val title: String,
     val description: String,
     val listingType: ListingType,

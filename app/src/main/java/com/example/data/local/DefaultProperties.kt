@@ -9,6 +9,7 @@ object DefaultProperties {
     val sampleList = listOf(
         Property(
             id = "prop-1",
+            ownerId = "curated_owner_1",
             title = "2BHK Independent House with Covered Parking",
             description = "Well-maintained 2BHK independent house with gated compound, covered car parking, and lush private garden. Direct borewell water with 24/7 supply and separate 3-phase EB connection. Clear title deeds and immediate possession available.",
             listingType = ListingType.BUY,
@@ -43,6 +44,7 @@ object DefaultProperties {
         ),
         Property(
             id = "prop-2",
+            ownerId = "curated_owner_2",
             title = "1200 sq.ft Urgent Residential Plot",
             description = "Urgent prime residential plot available due to emergency relocation. 30ft wide tar road facing with DTCP approval in hand. Immediate registry possible. High appreciation area surrounded by new independent villas.",
             listingType = ListingType.URGENT_SALE,
@@ -77,6 +79,7 @@ object DefaultProperties {
         ),
         Property(
             id = "prop-3",
+            ownerId = "curated_owner_3",
             title = "3BHK Luxury Coastal Villa with Swimming Pool",
             description = "Stunning eco-luxury 3BHK villa with private lap pool, solar-powered grid, Italian marble flooring, and modular open-concept kitchen. Located in a tranquil gated community close to the beach and Auroville universal township.",
             listingType = ListingType.BUY,
@@ -111,6 +114,7 @@ object DefaultProperties {
         ),
         Property(
             id = "prop-4",
+            ownerId = "curated_owner_4",
             title = "Furnished 2BHK Sea-Breeze Beach Apartment",
             description = "Fully furnished modern 2BHK beachside apartment with panoramic bay view balcony, gym access, infinity rooftop lounge, and 100% DG power backup. Just 200m from the coastal promenade.",
             listingType = ListingType.RENT,
@@ -145,6 +149,7 @@ object DefaultProperties {
         ),
         Property(
             id = "prop-5",
+            ownerId = "curated_owner_5",
             title = "3BHK High-Rise Luxury Condo in Indiranagar",
             description = "Exquisite 3BHK modern apartment in heart of Indiranagar, Bengaluru. Floor-to-ceiling soundproof glass, smart home automation, imported fixtures, dual basement parking, and walking distance to 100ft Road dining & metro.",
             listingType = ListingType.BUY,
@@ -179,6 +184,7 @@ object DefaultProperties {
         ),
         Property(
             id = "prop-6",
+            ownerId = "curated_owner_6",
             title = "Sea-Facing 2BHK Designer Flat in Bandra West",
             description = "Boutique sea-facing 2BHK flat near Carter Road, Bandra West. Modern minimalist aesthetics, modular chef's kitchen, round-the-clock water supply, and dedicated stilt parking. Clear society NOC and OC received.",
             listingType = ListingType.RENT,
@@ -213,6 +219,7 @@ object DefaultProperties {
         ),
         Property(
             id = "prop-7",
+            ownerId = "curated_owner_7",
             title = "4BHK Ultra-Luxury Golf Course Villa",
             description = "Magnificent 4BHK duplex villa overlooking private green fairways along Golf Course Extension Road, Gurugram. VRV central air conditioning, private elevator, landscaped lawn, and servant quarter.",
             listingType = ListingType.BUY,
@@ -247,6 +254,7 @@ object DefaultProperties {
         ),
         Property(
             id = "prop-8",
+            ownerId = "curated_owner_8",
             title = "3BHK Gated Community High-Rise in Gachibowli",
             description = "Spacious 3BHK flat in top-rated gated township near Financial District, Hyderabad. 100% Vastu compliant, east facing, scenic lake view, 50,000 sq.ft luxury clubhouse with indoor badminton courts and temperature-controlled pool.",
             listingType = ListingType.BUY,
@@ -281,6 +289,7 @@ object DefaultProperties {
         ),
         Property(
             id = "prop-9",
+            ownerId = "curated_owner_9",
             title = "Commercial Road-Facing Shop & Showroom",
             description = "High footfall commercial showroom space on Main Bazaar Road. Large glass display frontage, heavy-duty roller shutters, and separate commercial electricity meter. Ready for boutique, clinic, bank branch, or electronics store.",
             listingType = ListingType.RENT,
@@ -315,6 +324,7 @@ object DefaultProperties {
         ),
         Property(
             id = "prop-10",
+            ownerId = "curated_owner_10",
             title = "2400 sq.ft Urgent Commercial / Industrial Plot",
             description = "Emergency sale of highway-facing commercial plot on Pune-Solapur Road near Hadapsar IT hub. Clear NA (Non-Agricultural) order, 60ft wide service road frontage, transformer connection available on site.",
             listingType = ListingType.URGENT_SALE,
@@ -349,6 +359,7 @@ object DefaultProperties {
         ),
         Property(
             id = "prop-11",
+            ownerId = "curated_owner_11",
             title = "Portuguese Style 3BHK Heritage Villa with Garden",
             description = "Authentic restored 3BHK Portuguese villa in Assagao / Anjuna, North Goa. High vaulted wooden ceilings, laterite stone masonry, verandah overlooking coconut groves, and private plunge pool.",
             listingType = ListingType.BUY,
@@ -383,6 +394,7 @@ object DefaultProperties {
         ),
         Property(
             id = "prop-12",
+            ownerId = "curated_owner_12",
             title = "Waterfront 3BHK Flat overlooking Marine Drive",
             description = "Stunning waterfront 3BHK flat on Marine Drive, Kochi. Unobstructed view of backwaters and Arabian sea shipping channel. Modern modular kitchen, smart lighting, high-speed fiber internet, and covered basement car parking.",
             listingType = ListingType.RENT,
