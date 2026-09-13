@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "QuickNest"
+rootProject.name = "Ren"
 
 include(":app")

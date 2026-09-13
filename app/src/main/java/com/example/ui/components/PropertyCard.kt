@@ -79,6 +79,9 @@ import com.example.ui.theme.TextSecondary
 import com.example.ui.theme.UrgencyDarkBorder
 import com.example.ui.theme.UrgencyDarkCard
 import com.example.ui.theme.UrgencyFlame
+import com.example.ui.theme.NavyPrimary
+import com.example.ui.theme.BlueCorporate
+import com.example.ui.theme.AccentGold
 
 @Composable
 fun getDrawableResForName(name: String): Int {
@@ -530,10 +533,10 @@ fun UrgentPropertyCard(
                     .height(36.dp)
                     .testTag("urgent_contact_seller_button_${property.id}"),
                 shape = RoundedCornerShape(10.dp),
-                border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.5f)),
+                border = BorderStroke(1.dp, AccentGold.copy(alpha = 0.5f)),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = Color(0xFF0284C7).copy(alpha = 0.15f),
-                    contentColor = Color(0xFF38BDF8)
+                    containerColor = AccentGold.copy(alpha = 0.15f),
+                    contentColor = AccentGold
                 ),
                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp)
             ) {
@@ -541,14 +544,14 @@ fun UrgentPropertyCard(
                     imageVector = Icons.Default.Chat,
                     contentDescription = null,
                     modifier = Modifier.size(14.dp),
-                    tint = Color(0xFF38BDF8)
+                    tint = AccentGold
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = "Contact Seller",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF38BDF8)
+                    color = AccentGold
                 )
             }
         }

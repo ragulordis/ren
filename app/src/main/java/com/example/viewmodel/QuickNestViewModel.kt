@@ -1,6 +1,7 @@
 package com.example.viewmodel
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.local.QuickNestDatabase
@@ -11,6 +12,8 @@ import com.example.data.model.Property
 import com.example.data.model.PropertyCategory
 import com.example.data.model.PropertyVisit
 import com.example.data.model.SellingSpeed
+import com.example.data.model.UserProfile
+import com.example.data.model.UserRole
 import com.example.data.repository.PropertyRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,29 +24,48 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-enum class BudgetFilter(val label: String, val minPrice: Long = 0L, val maxPrice: Long = Long.MAX_VALUE) {
-    ALL("All Budgets"),
-    UNDER_20L("< ₹20 Lakhs", 0L, 2000000L),
-    RANGE_20L_40L("₹20L – ₹40L", 2000000L, 4000000L),
-    RANGE_40L_80L("₹40L – ₹80L", 4000000L, 8000000L),
-    RANGE_80L_1CR("₹80L – ₹1.5 Cr", 8000000L, 15000000L),
-    ABOVE_1CR("> ₹1.5 Cr", 15000000L, Long.MAX_VALUE),
-    RENT_UNDER_15K("< ₹15k/mo", 0L, 15000L),
-    RENT_15K_30K("₹15k – ₹30k/mo", 15000L, 30000L)
-}
-
-enum class SortOption(val label: String) {
-    URGENCY("Urgent Deals First"),
-    PRICE_LOW_HIGH("Price: Low to High"),
-    PRICE_HIGH_LOW("Price: High to Low"),
-    AREA_HIGH_LOW("Largest Area")
-}
+typealias BudgetFilter = com.example.data.model.BudgetFilter
+typealias SortOption = com.example.data.model.SortOption
 
 class QuickNestViewModel(application: Application) : AndroidViewModel(application) {
 
+    private val prefs = application.getSharedPreferences("ren_app_prefs", Context.MODE_PRIVATE)
     private val repository: PropertyRepository
     private val firestoreService = com.example.data.remote.FirestoreService()
+    private val authRepository: com.example.data.repository.AuthRepository = com.example.data.repository.AuthRepositoryImpl()
     private var chatCollectionJob: Job? = null
+
+    // Onboarding and Auth State
+    private val _isOnboarded = MutableStateFlow(prefs.getBoolean("is_onboarded", false))
+    val isOnboarded: StateFlow<Boolean> = _isOnboarded.asStateFlow()
+
+    private val _isLoggedIn = MutableStateFlow(prefs.getBoolean("is_logged_in", false))
+    val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
+
+    // Domain Use Cases
+    private val getPropertiesUseCase = com.example.domain.usecase.GetPropertiesUseCase(com.example.data.repository.PropertyRepositoryImpl(QuickNestDatabase.getInstance(application).propertyDao()))
+    private val scheduleVisitUseCase = com.example.domain.usecase.ScheduleVisitUseCase(com.example.data.repository.PropertyRepositoryImpl(QuickNestDatabase.getInstance(application).propertyDao()), authRepository)
+    private val sendChatMessageUseCase = com.example.domain.usecase.SendChatMessageUseCase(com.example.data.repository.PropertyRepositoryImpl(QuickNestDatabase.getInstance(application).propertyDao()), authRepository)
+    private val smartMatchUseCase = com.example.domain.usecase.SmartMatchUseCase(com.example.data.repository.PropertyRepositoryImpl(QuickNestDatabase.getInstance(application).propertyDao()))
+    private val toggleSaveUseCase = com.example.domain.usecase.ToggleSavePropertyUseCase(com.example.data.repository.PropertyRepositoryImpl(QuickNestDatabase.getInstance(application).propertyDao()))
+    private val observeUserProfileUseCase = com.example.domain.usecase.ObserveUserProfileUseCase(authRepository)
+
+    private val _currentUserProfile = MutableStateFlow(
+        UserProfile(
+            uid = prefs.getString("user_uid", "ren_user_1") ?: "ren_user_1",
+            displayName = prefs.getString("user_name", "Ragul Ordis") ?: "Ragul Ordis",
+            email = prefs.getString("user_email", "ragulordis@gmail.com") ?: "ragulordis@gmail.com",
+            phone = prefs.getString("user_phone", "+91 98401 55678") ?: "+91 98401 55678",
+            role = try {
+                UserRole.valueOf(prefs.getString("user_role", UserRole.BUYER.name) ?: UserRole.BUYER.name)
+            } catch (e: Exception) {
+                UserRole.BUYER
+            },
+            verificationStatus = "VERIFIED",
+            verificationLevel = 2
+        )
+    )
+    val currentUserProfile: StateFlow<com.example.data.model.UserProfile> = _currentUserProfile.asStateFlow()
 
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -56,7 +78,17 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
 
     init {
         val db = QuickNestDatabase.getInstance(application)
-        repository = PropertyRepository(db.propertyDao(), firestoreService)
+        repository = com.example.data.repository.PropertyRepositoryImpl(db.propertyDao(), firestoreService)
+
+        // Observe real Firebase Auth state changes
+        viewModelScope.launch {
+            authRepository.authState.collect { user ->
+                if (user != null) {
+                    _currentUserProfile.value = user
+                }
+            }
+        }
+
         viewModelScope.launch {
             _isLoading.value = true
             repository.ensureInitialized()
@@ -160,7 +192,7 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
     private val _selectedPropertyType = MutableStateFlow<String?>(null)
     val selectedPropertyType: StateFlow<String?> = _selectedPropertyType.asStateFlow()
 
-    private val _selectedLocation = MutableStateFlow("Kottakuppam")
+    private val _selectedLocation = MutableStateFlow("All Locations")
     val selectedLocation: StateFlow<String> = _selectedLocation.asStateFlow()
 
     private val _urgentOnly = MutableStateFlow(false)
@@ -273,7 +305,11 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
                 else -> prop.propertyType.contains(pType, ignoreCase = true) || prop.title.contains(pType, ignoreCase = true)
             }
 
-            val matchesLocation = location == "All Locations" || prop.location.equals(location, ignoreCase = true)
+            val matchesLocation = location == "All Locations" ||
+                    prop.location.equals(location, ignoreCase = true) ||
+                    prop.location.contains(location, ignoreCase = true) ||
+                    location.contains(prop.location, ignoreCase = true) ||
+                    prop.approximateArea.contains(location, ignoreCase = true)
 
             val matchesUrgent = !urgentOnly || prop.sellingSpeed == SellingSpeed.URGENT || prop.sellingSpeed == SellingSpeed.FAST
 
@@ -434,7 +470,7 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             _isSmartMatchLoading.value = true
             try {
-                val results = repository.getSmartMatchSuggestions(_smartMatchPreferences.value)
+                val results = smartMatchUseCase(_smartMatchPreferences.value)
                 _smartMatchResults.value = results
             } catch (e: Exception) {
                 val localProps = allProperties.value
@@ -481,8 +517,115 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
         _selectedCategory.value = category
     }
 
+    private val foreignCountries = listOf(
+        "usa", "united states", "us", "uk", "united kingdom", "london", "dubai", "uae",
+        "singapore", "australia", "canada", "new york", "germany", "france", "japan",
+        "tokyo", "paris", "california", "texas", "florida", "china", "malaysia", "thailand"
+    )
+
+    fun isIndiaLocation(location: String): Boolean {
+        val lower = location.trim().lowercase()
+        return !foreignCountries.any { lower == it || lower.contains(" $it") || lower.contains("$it ") }
+    }
+
     fun selectLocation(location: String) {
-        _selectedLocation.value = location
+        val clean = location.trim()
+        if (clean.isBlank() || clean.equals("All", ignoreCase = true) || clean.equals("All Locations", ignoreCase = true)) {
+            _selectedLocation.value = "All Locations"
+            return
+        }
+
+        if (!isIndiaLocation(clean)) {
+            _feedbackMessage.value = "Ren is currently available exclusively in India 🇮🇳. International locations coming soon!"
+            return
+        }
+
+        _selectedLocation.value = clean
+        saveRecentSearch(clean)
+    }
+
+    fun completeOnboarding() {
+        prefs.edit().putBoolean("is_onboarded", true).apply()
+        _isOnboarded.value = true
+    }
+
+    fun loginWithGoogle(name: String, email: String, role: UserRole, preferredCity: String) {
+        val profile = UserProfile(
+            uid = "ren_google_${email.hashCode()}",
+            displayName = name.ifBlank { "Ren Member" },
+            email = email,
+            phone = "+91 98401 55678",
+            photoUrl = "",
+            role = role,
+            verificationStatus = "VERIFIED",
+            verificationLevel = 3
+        )
+        prefs.edit()
+            .putBoolean("is_logged_in", true)
+            .putBoolean("is_onboarded", true)
+            .putString("user_uid", profile.uid)
+            .putString("user_name", profile.displayName)
+            .putString("user_email", profile.email)
+            .putString("user_role", profile.role.name)
+            .putString("preferred_city", preferredCity)
+            .apply()
+
+        _currentUserProfile.value = profile
+        _isOnboarded.value = true
+        _isLoggedIn.value = true
+        if (preferredCity != "All Locations") {
+            selectLocation(preferredCity)
+        }
+        _feedbackMessage.value = "Welcome back, ${profile.displayName}! Signed in with Google."
+    }
+
+    fun loginWithEmail(name: String, email: String, role: UserRole, preferredCity: String) {
+        val profile = UserProfile(
+            uid = "ren_email_${email.hashCode()}",
+            displayName = name.ifBlank { "Ren User" },
+            email = email,
+            phone = "+91 98401 55678",
+            photoUrl = "",
+            role = role,
+            verificationStatus = "VERIFIED",
+            verificationLevel = 2
+        )
+        prefs.edit()
+            .putBoolean("is_logged_in", true)
+            .putBoolean("is_onboarded", true)
+            .putString("user_uid", profile.uid)
+            .putString("user_name", profile.displayName)
+            .putString("user_email", profile.email)
+            .putString("user_role", profile.role.name)
+            .putString("preferred_city", preferredCity)
+            .apply()
+
+        _currentUserProfile.value = profile
+        _isOnboarded.value = true
+        _isLoggedIn.value = true
+        if (preferredCity != "All Locations") {
+            selectLocation(preferredCity)
+        }
+        _feedbackMessage.value = "Welcome to Ren, ${profile.displayName}!"
+    }
+
+    fun continueAsGuest() {
+        prefs.edit()
+            .putBoolean("is_logged_in", true)
+            .putBoolean("is_onboarded", true)
+            .apply()
+        _isOnboarded.value = true
+        _isLoggedIn.value = true
+        _feedbackMessage.value = "Browsing Ren listings across India as Guest"
+    }
+
+    fun logout() {
+        prefs.edit()
+            .putBoolean("is_logged_in", false)
+            .apply()
+        _isLoggedIn.value = false
+        authRepository.signOut()
+        _feedbackMessage.value = "Signed out successfully"
     }
 
     fun toggleUrgentOnly() {
@@ -583,39 +726,8 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
     fun sendChatMessage(text: String) {
         val currentProp = _chatProperty.value ?: return
         if (text.isBlank()) return
-        val myMsg = ChatMessage(
-            id = "m-${System.currentTimeMillis()}",
-            propertyId = currentProp.id,
-            senderName = "Ragul",
-            message = text,
-            time = "Just now",
-            isFromMe = true
-        )
         viewModelScope.launch {
-            repository.insertChatMessage(myMsg)
-
-            // Smart reply simulation from verified owner/broker
-            kotlinx.coroutines.delay(1000)
-            val replyText = when {
-                text.contains("visit", ignoreCase = true) || text.contains("see", ignoreCase = true) ->
-                    "Yes, tomorrow 10 AM or 4 PM works great for a site visit! You can also book it via the Schedule Visit button."
-                text.contains("price", ignoreCase = true) || text.contains("negotiate", ignoreCase = true) ->
-                    "Since this is marked for Fast Sale, the price is already competitive, but we can discuss slight flexibility in person."
-                text.contains("patta", ignoreCase = true) || text.contains("document", ignoreCase = true) ->
-                    "The documents (Patta, Chitta, FMB sketch, EB card) are verified and ready for inspection at the site."
-                else ->
-                    "Thank you for the message! I'm available to show the property anytime between 9 AM and 6 PM."
-            }
-            repository.insertChatMessage(
-                ChatMessage(
-                    id = "m-reply-${System.currentTimeMillis()}",
-                    propertyId = currentProp.id,
-                    senderName = currentProp.ownerName,
-                    message = replyText,
-                    time = "Just now",
-                    isFromMe = false
-                )
-            )
+            sendChatMessageUseCase.sendMessage(currentProp.id, text)
         }
     }
 
@@ -649,16 +761,7 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
     ) {
         viewModelScope.launch {
             _contactSellerProperty.value = null
-            // Also log to chat history as formal inquiry
-            val emailLogMsg = ChatMessage(
-                id = "m-email-${System.currentTimeMillis()}",
-                propertyId = property.id,
-                senderName = "Ragul ($buyerEmail)",
-                message = "📧 Formal Email Inquiry Sent:\nSubject: $subject\n\n$message\n\nContact: $buyerPhone | $buyerEmail",
-                time = "Just now",
-                isFromMe = true
-            )
-            repository.insertChatMessage(emailLogMsg)
+            sendChatMessageUseCase.sendEmailInquiry(property, subject, message, buyerEmail, buyerPhone)
             _feedbackMessage.value = "Inquiry sent to ${property.ownerName} (${property.ownerEmail})!"
         }
     }
@@ -673,19 +776,9 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun confirmVisit(property: Property, date: String, timeSlot: String) {
         viewModelScope.launch {
-            val visit = PropertyVisit(
-                id = "visit-${System.currentTimeMillis()}",
-                propertyId = property.id,
-                propertyTitle = property.title,
-                location = property.location,
-                buyerName = "Ragul",
-                date = date,
-                timeSlot = timeSlot,
-                status = "Confirmed"
-            )
-            repository.scheduleVisit(visit)
+            scheduleVisitUseCase(property, date, timeSlot)
             _visitProperty.value = null
-            _feedbackMessage.value = "Site visit confirmed for $date at $timeSlot!"
+            _feedbackMessage.value = "Site visit requested for $date at $timeSlot!"
         }
     }
 
@@ -723,7 +816,7 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             repository.reportProperty(property.id, property.title, reason, details)
             _reportProperty.value = null
-            _feedbackMessage.value = "Listing reported to QuickNest Safety Shield. Investigating within 2 hours."
+            _feedbackMessage.value = "Listing reported to Ren Safety Shield. Investigating within 2 hours."
         }
     }
 
@@ -759,7 +852,7 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun toggleSave(property: Property) {
         viewModelScope.launch {
-            repository.toggleSave(property.id, property.isSaved)
+            toggleSaveUseCase(property)
             val action = if (!property.isSaved) "Saved to favorites" else "Removed from favorites"
             _feedbackMessage.value = action
         }
@@ -780,7 +873,7 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
     fun openAiAssistant() {
         _showAiAssistant.value = true
         if (_aiResults.value.isEmpty()) {
-            runAiNaturalSearch("Urgent land or house near Kottakuppam under 35 lakhs")
+            runAiNaturalSearch("Luxury 3BHK or urgent plot in India under 50 lakhs")
         }
     }
 
@@ -793,33 +886,40 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
         val props = allProperties.value
         val lower = query.lowercase()
 
-        // Natural language filter heuristics
+        // Natural language filter heuristics for Pan-India locations
         val matched = props.filter { p ->
             var score = 0
+            if (lower.contains("bengaluru") || lower.contains("bangalore") && p.location.contains("Bengaluru", ignoreCase = true)) score += 40
+            if (lower.contains("chennai") && p.location.contains("Chennai", ignoreCase = true)) score += 40
+            if (lower.contains("mumbai") && p.location.contains("Mumbai", ignoreCase = true)) score += 40
+            if ((lower.contains("delhi") || lower.contains("gurugram") || lower.contains("noida")) && p.location.contains("Delhi", ignoreCase = true)) score += 40
+            if (lower.contains("hyderabad") && p.location.contains("Hyderabad", ignoreCase = true)) score += 40
+            if (lower.contains("pune") && p.location.contains("Pune", ignoreCase = true)) score += 40
+            if (lower.contains("kochi") || lower.contains("cochin") && p.location.contains("Kochi", ignoreCase = true)) score += 40
+            if (lower.contains("goa") && p.location.contains("Goa", ignoreCase = true)) score += 40
             if (lower.contains("auroville") && p.location.contains("Auroville", ignoreCase = true)) score += 40
             if (lower.contains("kottakuppam") && p.location.contains("Kottakuppam", ignoreCase = true)) score += 40
-            if (lower.contains("serenity") && p.location.contains("Serenity", ignoreCase = true)) score += 40
             if (lower.contains("pondy") || lower.contains("pondicherry") && p.location.contains("Pondicherry", ignoreCase = true)) score += 40
 
             if (lower.contains("rent") && p.listingType == ListingType.RENT) score += 30
             if (lower.contains("lease") && p.listingType == ListingType.LEASE) score += 30
-            if (lower.contains("land") && p.category == PropertyCategory.LAND) score += 30
+            if (lower.contains("land") || lower.contains("plot") && p.category == PropertyCategory.LAND) score += 30
             if (lower.contains("house") || lower.contains("villa") && (p.propertyType.contains("House") || p.propertyType.contains("Villa"))) score += 30
             if (lower.contains("urgent") && (p.sellingSpeed == SellingSpeed.URGENT || p.sellingSpeed == SellingSpeed.FAST)) score += 30
 
             // Budget heuristic
             if (lower.contains("20,000") || lower.contains("20000") || lower.contains("20k")) {
-                if (p.listingType == ListingType.RENT && p.price <= 20000) score += 25
+                if (p.listingType == ListingType.RENT && p.price <= 25000) score += 25
             }
-            if (lower.contains("35 lakhs") || lower.contains("30 lakhs") || lower.contains("40 lakhs")) {
-                if (p.price <= 4000000L) score += 25
+            if (lower.contains("35 lakhs") || lower.contains("50 lakhs") || lower.contains("1 crore") || lower.contains("cr")) {
+                score += 25
             }
 
             score > 25
-        }.ifEmpty { props.take(3) }
+        }.ifEmpty { props.take(4) }
 
         _aiResults.value = matched
-        _aiExplanation.value = "Found ${matched.size} properties matching your criteria in the local Kottakuppam / Pondicherry radius."
+        _aiExplanation.value = "Found ${matched.size} properties matching your criteria across verified Indian locations."
     }
 
     fun postNewProperty(
@@ -844,6 +944,7 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
                 SellingSpeed.PRIVATE -> 4
                 SellingSpeed.NORMAL -> 2
             }
+            val user = _currentUserProfile.value
             val newProp = Property(
                 id = "prop-${System.currentTimeMillis()}",
                 title = title,
@@ -866,7 +967,7 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
                 bathrooms = bathrooms,
                 areaSqFt = areaSqFt,
                 urgencyScore = urgencyScore,
-                verificationLevel = 3,
+                verificationLevel = 0, // Unverified draft/pending review - client NEVER sets level 3!
                 imageResName = when (category) {
                     PropertyCategory.LAND -> "prop_land_plot"
                     PropertyCategory.RENT -> "prop_beach_serenity"
@@ -874,15 +975,15 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
                     else -> "prop_house_kottakuppam"
                 },
                 featuresList = features,
-                ownerName = "Ragul",
-                ownerPhone = "+91 98401 23456",
+                ownerName = user.displayName.ifBlank { "Property Owner" },
+                ownerPhone = user.phone.ifBlank { "" },
                 ownerType = "Owner",
                 isPrivate = isPrivate,
-                viewsCount = 1,
+                viewsCount = 0,
                 savedCount = 0,
                 messagesCount = 0,
                 visitRequestsCount = 0,
-                interestedBuyersCount = 14
+                interestedBuyersCount = 0 // Real count starts at zero
             )
             repository.addProperty(newProp)
             _feedbackMessage.value = "Property posted successfully! QuickMatch activated."

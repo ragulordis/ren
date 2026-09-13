@@ -23,49 +23,55 @@ private val QuickNestShapes = Shapes(
 
 private val DarkColorScheme =
   darkColorScheme(
-    primary = BrandPrimaryDark,
-    onPrimary = Color(0xFF082F49),
-    primaryContainer = Color(0xFF0369A1),
-    onPrimaryContainer = Color(0xFFE0F2FE),
-    secondary = BrandSecondary,
-    onSecondary = Color(0xFF1E1B4B),
-    secondaryContainer = Color(0xFF312E81),
-    onSecondaryContainer = Color(0xFFEEF2FF),
-    tertiary = BrandTertiary,
+    primary = Color(0xFF93C5FD),
+    onPrimary = NavyPrimary,
+    primaryContainer = NavyPrimary,
+    onPrimaryContainer = Color(0xFFDBEAFE),
+    secondary = Color(0xFF60A5FA),
+    onSecondary = Color(0xFF0B1726),
+    secondaryContainer = Color(0xFF16324F),
+    onSecondaryContainer = Color(0xFFEFF6FF),
+    tertiary = AccentGold,
+    onTertiary = NavyPrimary,
+    tertiaryContainer = Color(0xFF332B1A),
+    onTertiaryContainer = Color(0xFFFAF5EB),
     background = DarkCanvas,
     surface = DarkSurface,
     surfaceVariant = DarkSurfaceVariant,
-    onBackground = Color(0xFFF8FAFC),
-    onSurface = Color(0xFFF8FAFC),
-    onSurfaceVariant = Color(0xFF94A3B8),
+    onBackground = IvoryBackground,
+    onSurface = IvoryBackground,
+    onSurfaceVariant = SlateMutedText,
     outline = DarkCardBorder,
-    outlineVariant = Color(0xFF1E293B)
+    outlineVariant = Color(0xFF1E3A5F)
   )
 
 private val LightColorScheme =
   lightColorScheme(
-    primary = BrandPrimary,
-    onPrimary = Color.White,
-    primaryContainer = BrandPrimaryContainer,
-    onPrimaryContainer = BrandOnPrimaryContainer,
-    secondary = BrandSecondary,
-    onSecondary = Color.White,
-    secondaryContainer = BrandSecondaryContainer,
-    onSecondaryContainer = BrandOnSecondaryContainer,
-    tertiary = BrandTertiary,
-    background = BackgroundLight,
-    surface = SurfaceLight,
-    surfaceVariant = SurfaceVariantLight,
-    onBackground = TextPrimary,
-    onSurface = TextPrimary,
-    onSurfaceVariant = TextSecondary,
-    outline = CardBorder,
-    outlineVariant = CardBorderSubtle,
+    primary = NavyPrimary, // Enterprise Navy #102A43
+    onPrimary = SurfaceWhite,
+    primaryContainer = BrandPrimaryContainer, // #DBEAFE
+    onPrimaryContainer = NavyPrimary,
+    secondary = BlueCorporate, // Royal Corporate Blue #2563EB
+    onSecondary = SurfaceWhite,
+    secondaryContainer = BrandSecondaryContainer, // #EFF6FF
+    onSecondaryContainer = BrandOnSecondaryContainer, // #1D4ED8
+    tertiary = AccentGold, // Champagne Brass Accent #C9A96E
+    onTertiary = CharcoalNavyText,
+    tertiaryContainer = Color(0xFFFAF5EB),
+    onTertiaryContainer = Color(0xFF8C7335),
+    background = IvoryBackground, // Warm Ivory Canvas #F8F7F4
+    surface = SurfaceWhite, // Pure White #FFFFFF
+    surfaceVariant = SurfaceIvoryTint, // Subtle Warm Tint #F1F0EC
+    onBackground = CharcoalNavyText, // Deep Navy-Charcoal Text #172033
+    onSurface = CharcoalNavyText,
+    onSurfaceVariant = SlateSecondaryText, // Slate Secondary Text #64748B
+    outline = CardBorder, // #E8E6DF
+    outlineVariant = CardBorderSubtle, // #F0EEE8
   )
 
 @Composable
 fun MyApplicationTheme(
-  darkTheme: Boolean = isSystemInDarkTheme(),
+  darkTheme: Boolean = false,
   // Set dynamicColor to false by default to ensure consistent QuickNest brand visuals
   dynamicColor: Boolean = false,
   content: @Composable () -> Unit,

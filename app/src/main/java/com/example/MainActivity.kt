@@ -2,6 +2,7 @@ package com.example
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -19,9 +20,12 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,11 +33,21 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.shadow
+import com.example.ui.theme.NavyPrimary
+import com.example.ui.theme.BlueCorporate
+import com.example.ui.theme.AccentGold
+import com.example.ui.theme.SlateMutedText
+import com.example.ui.theme.SlateSecondaryText
+import com.example.ui.theme.IvoryBackground
+import com.example.ui.theme.CharcoalNavyText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -77,6 +91,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import com.example.data.model.BudgetFilter
+import com.example.data.model.Property
+import com.example.data.model.SortOption
+import com.example.ui.navigation.QuickNestRoute
+import com.example.ui.navigation.topLevelNavItems
 import com.example.ui.components.AiAssistantDialog
 import com.example.ui.components.ChatDialog
 import com.example.ui.components.ContactSellerDialog
@@ -104,9 +129,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        viewModel.setTab(0)
         enableEdgeToEdge()
         setContent {
-            MyApplicationTheme {
+            MyApplicationTheme(darkTheme = false) {
                 QuickNestApp(viewModel = viewModel)
             }
         }
@@ -116,6 +142,13 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuickNestApp(viewModel: QuickNestViewModel) {
+    val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
+
+    val isOnboarded by viewModel.isOnboarded.collectAsStateWithLifecycle()
+    val isLoggedIn by viewModel.isLoggedIn.collectAsStateWithLifecycle()
+
     val currentTab by viewModel.currentTab.collectAsStateWithLifecycle()
     val selectedProperty by viewModel.selectedProperty.collectAsStateWithLifecycle()
     val contactSellerProperty by viewModel.contactSellerProperty.collectAsStateWithLifecycle()
@@ -153,13 +186,49 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
         }
     }
 
-    val navItems = listOf(
-        Triple("Home", Icons.Default.Home, "nav_home"),
-        Triple("Explore", Icons.Default.Explore, "nav_explore"),
-        Triple("Post", Icons.Default.PostAdd, "nav_post"),
-        Triple("Saved", Icons.Default.Favorite, "nav_saved"),
-        Triple("Profile", Icons.Default.Person, "nav_profile")
-    )
+    if (!isOnboarded) {
+        com.example.ui.screens.OnboardingScreen(
+            onFinishOnboarding = { viewModel.completeOnboarding() }
+        )
+        return
+    }
+
+    if (!isLoggedIn) {
+        com.example.ui.screens.LoginScreen(
+            onLoginSuccess = { name, email, role, city ->
+                viewModel.loginWithGoogle(name, email, role, city)
+            },
+            onContinueAsGuest = {
+                viewModel.continueAsGuest()
+            }
+        )
+        return
+    }
+
+    BackHandler(enabled = currentTab != 0) {
+        viewModel.setTab(0)
+    }
+
+    LaunchedEffect(currentTab) {
+        val targetRoute: QuickNestRoute = when (currentTab) {
+            0 -> QuickNestRoute.Home
+            1 -> QuickNestRoute.Explore
+            2 -> QuickNestRoute.PostProperty
+            3 -> QuickNestRoute.Saved
+            4 -> QuickNestRoute.Profile
+            else -> QuickNestRoute.Home
+        }
+        val graph = runCatching { navController.graph }.getOrNull()
+        if (graph != null && currentDestination?.hasRoute(targetRoute::class) != true) {
+            navController.navigate(targetRoute) {
+                popUpTo(graph.findStartDestination().id) {
+                    saveState = false
+                }
+                launchSingleTop = true
+                restoreState = false
+            }
+        }
+    }
 
     val infiniteTransition = rememberInfiniteTransition(label = "badgePulse")
     val pulseScale by infiniteTransition.animateFloat(
@@ -174,6 +243,7 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
+        containerColor = IvoryBackground,
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
         },
@@ -186,16 +256,17 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(34.dp)
+                                .size(38.dp)
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(CoolHeroGradient),
+                                .background(Color(0xFFFAF8F5))
+                                .border(1.dp, CardBorderSubtle, RoundedCornerShape(10.dp)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.LocalFireDepartment,
-                                contentDescription = "QuickNest Logo",
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
+                            Image(
+                                painter = painterResource(id = R.drawable.ren_logo),
+                                contentDescription = "Ren Logo",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
                             )
                         }
                         Column {
@@ -204,20 +275,21 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 Text(
-                                    text = "QuickNest",
-                                    fontSize = 19.sp,
+                                    text = "Ren",
+                                    fontSize = 20.sp,
                                     fontWeight = FontWeight.Black,
+                                    letterSpacing = 0.5.sp,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Surface(
                                     shape = RoundedCornerShape(6.dp),
-                                    color = UrgencyFlame.copy(alpha = 0.14f),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, UrgencyFlame.copy(alpha = 0.35f)),
+                                    color = Color(0xFFFAF5EB),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, AccentGold.copy(alpha = 0.5f)),
                                     modifier = Modifier.scale(pulseScale)
                                 ) {
                                     Text(
-                                        text = "FAST DEALS",
-                                        color = UrgencyFlame,
+                                        text = "INDIA",
+                                        color = AccentGold,
                                         fontSize = 9.sp,
                                         fontWeight = FontWeight.ExtraBold,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -225,9 +297,9 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
                                 }
                             }
                             Text(
-                                text = "Hyperlocal Property Network",
+                                text = "Find Your Place • Real Estate India 🇮🇳",
                                 fontSize = 10.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                color = SlateSecondaryText,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -240,7 +312,7 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
                             .padding(end = 3.dp)
                             .size(38.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
                             .testTag("top_bar_smart_match_button")
                     ) {
                         Icon(
@@ -257,76 +329,94 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
                             .padding(end = 6.dp)
                             .size(38.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
                     ) {
                         Icon(
                             imageVector = Icons.Default.AutoAwesome,
                             contentDescription = "AI Property Matcher",
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = NavyPrimary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                    containerColor = IvoryBackground,
+                    titleContentColor = CharcoalNavyText
                 )
             )
         },
         bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = 6.dp,
+            Surface(
                 modifier = Modifier
-                    .border(width = 1.dp, brush = CoolGlassmorphicBorder, shape = RectangleShape)
-                    .testTag("bottom_navigation_bar")
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
+                    .shadow(12.dp, RoundedCornerShape(28.dp))
+                    .clip(RoundedCornerShape(28.dp))
+                    .border(1.dp, Color(0xFF244466), RoundedCornerShape(28.dp))
+                    .testTag("bottom_navigation_bar"),
+                color = NavyPrimary,
+                shape = RoundedCornerShape(28.dp)
             ) {
-                navItems.forEachIndexed { index, (label, icon, testTag) ->
-                    val isSelected = currentTab == index
-                    val iconScale by animateFloatAsState(
-                        targetValue = if (isSelected) 1.18f else 1.0f,
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        ),
-                        label = "nav_scale_$index"
-                    )
+                NavigationBar(
+                    containerColor = NavyPrimary,
+                    tonalElevation = 0.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    topLevelNavItems.forEachIndexed { index, item ->
+                        val isSelected = currentTab == index
+                        val iconScale by animateFloatAsState(
+                            targetValue = if (isSelected) 1.15f else 1.0f,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            ),
+                            label = "nav_scale_$index"
+                        )
 
-                    NavigationBarItem(
-                        selected = isSelected,
-                        onClick = { viewModel.setTab(index) },
-                        icon = {
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = label,
-                                modifier = Modifier
-                                    .size(22.dp)
-                                    .scale(iconScale)
-                            )
-                        },
-                        label = {
-                            Text(
-                                text = label,
-                                fontSize = 10.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                            )
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.primary,
-                            selectedTextColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
-                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
-                        ),
-                        modifier = Modifier.testTag(testTag)
-                    )
+                        NavigationBarItem(
+                            selected = isSelected,
+                            onClick = {
+                                if (currentTab != index) {
+                                    viewModel.setTab(index)
+                                }
+                            },
+                            icon = {
+                                Icon(
+                                    imageVector = item.icon,
+                                    contentDescription = item.title,
+                                    modifier = Modifier
+                                        .size(22.dp)
+                                        .scale(iconScale)
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = item.title,
+                                    fontSize = 10.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                )
+                            },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = Color.White,
+                                selectedTextColor = Color.White,
+                                indicatorColor = BlueCorporate,
+                                unselectedIconColor = SlateMutedText,
+                                unselectedTextColor = SlateMutedText
+                            ),
+                            modifier = Modifier.testTag(item.testTag)
+                        )
+                    }
                 }
             }
         },
         floatingActionButton = {
-            if (currentTab == 0) {
+            val isHome = currentTab == 0
+            if (isHome) {
                 ExtendedFloatingActionButton(
-                    onClick = { viewModel.setTab(2) }, // Navigate to Post
+                    onClick = {
+                        viewModel.setTab(2)
+                    },
                     icon = {
                         Icon(
                             Icons.Default.ElectricBolt,
@@ -342,7 +432,8 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
                             color = Color.White
                         )
                     },
-                    containerColor = MaterialTheme.colorScheme.primary,
+                    containerColor = BlueCorporate,
+                    contentColor = Color.White,
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.testTag("fab_sell_fast")
                 )
@@ -354,25 +445,25 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            AnimatedContent(
-                targetState = currentTab,
-                transitionSpec = {
-                    if (targetState > initialState) {
-                        (slideInHorizontally { width -> (width * 0.25f).toInt() } + fadeIn(animationSpec = tween(240)))
-                            .togetherWith(slideOutHorizontally { width -> (-width * 0.25f).toInt() } + fadeOut(animationSpec = tween(180)))
-                    } else {
-                        (slideInHorizontally { width -> (-width * 0.25f).toInt() } + fadeIn(animationSpec = tween(240)))
-                            .togetherWith(slideOutHorizontally { width -> (width * 0.25f).toInt() } + fadeOut(animationSpec = tween(180)))
-                    }
-                },
-                label = "ScreenTransition"
-            ) { tabIndex ->
-                when (tabIndex) {
-                    0 -> HomeScreen(viewModel = viewModel)
-                    1 -> ExploreScreen(viewModel = viewModel)
-                    2 -> PostPropertyScreen(viewModel = viewModel)
-                    3 -> SavedScreen(viewModel = viewModel)
-                    4 -> ProfileScreen(viewModel = viewModel)
+            NavHost(
+                navController = navController,
+                startDestination = QuickNestRoute.Home,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                composable<QuickNestRoute.Home> {
+                    HomeScreen(viewModel = viewModel)
+                }
+                composable<QuickNestRoute.Explore> {
+                    ExploreScreen(viewModel = viewModel)
+                }
+                composable<QuickNestRoute.PostProperty> {
+                    PostPropertyScreen(viewModel = viewModel)
+                }
+                composable<QuickNestRoute.Saved> {
+                    SavedScreen(viewModel = viewModel)
+                }
+                composable<QuickNestRoute.Profile> {
+                    ProfileScreen(viewModel = viewModel)
                 }
             }
         }

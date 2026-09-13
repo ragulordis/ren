@@ -85,17 +85,16 @@ fun ContactSellerDialog(
 
     // Email state
     var emailSubject by remember {
-        mutableStateOf("[QuickNest Inquiry] ${property.title} (${property.formattedPrice})")
+        mutableStateOf("[Ren Inquiry] ${property.title} (${property.formattedPrice})")
     }
-    var buyerEmail by remember { mutableStateOf("ragulordis@gmail.com") }
-    var buyerPhone by remember { mutableStateOf("+91 98401 98765") }
+    var buyerEmail by remember { mutableStateOf("") }
+    var buyerPhone by remember { mutableStateOf("") }
     var emailBody by remember {
         mutableStateOf(
             "Hello ${property.ownerName},\n\n" +
                     "I came across your listing \"${property.title}\" located at ${property.location} listed for ${property.formattedPrice}.\n\n" +
                     "I would like to know more about the property details, legal documentation, and schedule an on-site viewing at your earliest convenience.\n\n" +
-                    "Looking forward to hearing from you.\n\n" +
-                    "Best regards,\nRagul"
+                    "Looking forward to hearing from you."
         )
     }
 

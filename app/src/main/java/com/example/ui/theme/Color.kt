@@ -3,66 +3,83 @@ package com.example.ui.theme
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
-// Premium Cool Cyber-Luxe Theme - Electric Cyan & Radiant Indigo
-val BrandPrimary = Color(0xFF0284C7) // Electric Oceanic Sky
-val BrandPrimaryDark = Color(0xFF38BDF8) // High-contrast Ice Cyan
-val BrandPrimaryContainer = Color(0xFFE0F2FE)
-val BrandOnPrimaryContainer = Color(0xFF0369A1)
-val BrandSecondary = Color(0xFF6366F1) // Vibrant Radiant Indigo
-val BrandSecondaryContainer = Color(0xFFEEF2FF)
-val BrandOnSecondaryContainer = Color(0xFF3730A3)
-val BrandTertiary = Color(0xFF06B6D4) // Cool Aquamarine
+// Ivory & Navy: Professional Real Estate Enterprise Palette
+// Trustworthy, Professional, Corporate, Clean, Established
+val NavyPrimary = Color(0xFF102A43) // Deep Corporate Enterprise Navy
+val BlueCorporate = Color(0xFF2563EB) // Vibrant Royal Tech Blue
+val AccentGold = Color(0xFFC9A96E) // Warm Gold / Champagne Brass Accent
+val IvoryBackground = Color(0xFFF8F7F4) // Warm Ivory Background Canvas
+val SurfaceWhite = Color(0xFFFFFFFF) // Pure White Surface
+val SurfaceIvoryTint = Color(0xFFF1F0EC) // Subtle Warm Ivory Surface Variant
+val CharcoalNavyText = Color(0xFF172033) // High-contrast Deep Navy-Charcoal Text
+val SlateSecondaryText = Color(0xFF64748B) // Clean Slate Secondary Text
+val SlateMutedText = Color(0xFF94A3B8) // Muted Placeholder/Caption Text
 
-// Speed & Urgency Colors (Neon Coral Flame & Deep Obsidian Cyber Card)
-val UrgencyFlame = Color(0xFFF97316)
-val UrgencyFlameContainer = Color(0xFFFFEDD5)
-val UrgencyDarkCard = Color(0xFF0F172A)
-val UrgencyDarkBorder = Color(0xFF334155)
-val FastSaleAmber = Color(0xFFF59E0B)
-val FastSaleAmberContainer = Color(0xFFFEF3C7)
-val NormalGreen = Color(0xFF10B981)
-val NormalGreenContainer = Color(0xFFD1FAE5)
-val PrivateSaleDark = Color(0xFF0F172A)
+// Semantic Brand Tokens
+val BrandPrimary = NavyPrimary // Enterprise Navy
+val BrandPrimaryDark = Color(0xFF93C5FD)
+val BrandPrimaryContainer = Color(0xFFDBEAFE) // Soft Corporate Blue Tint
+val BrandOnPrimaryContainer = Color(0xFF102A43)
+val BrandSecondary = BlueCorporate // Royal Blue
+val BrandSecondaryContainer = Color(0xFFEFF6FF)
+val BrandOnSecondaryContainer = Color(0xFF1D4ED8)
+val BrandTertiary = AccentGold // Champagne Gold Accent
 
-// Verification & Trust
-val VerifiedGreen = Color(0xFF10B981)
-val VerifiedGreenContainer = Color(0xFFD1FAE5)
-val TrustGold = Color(0xFFF59E0B)
+// Speed & High-End Card Accents (Subtle, Established & Corporate)
+val UrgencyFlame = Color(0xFFD97706) // Rich Corporate Amber
+val UrgencyFlameContainer = Color(0xFFFEF3C7)
+val UrgencyDarkCard = Color(0xFF102A43) // Enterprise Navy High-Priority Card
+val UrgencyDarkBorder = Color(0xFF244466)
+val FastSaleAmber = AccentGold
+val FastSaleAmberContainer = Color(0xFFFAF5EB)
+val NormalGreen = Color(0xFF059669)
+val NormalGreenContainer = Color(0xFFECFDF5)
+val PrivateSaleDark = Color(0xFF102A43)
 
-// Premium Cool Light Neutral Canvas
-val BackgroundLight = Color(0xFFF8FAFC)
-val SurfaceLight = Color(0xFFFFFFFF)
-val SurfaceVariantLight = Color(0xFFF1F5F9)
-val CardBorder = Color(0xFFE2E8F0)
-val CardBorderSubtle = Color(0xFFEEF2F6)
-val TextPrimary = Color(0xFF0F172A)
-val TextSecondary = Color(0xFF475569)
-val TextMuted = Color(0xFF94A3B8)
+// Verification & Trust Badges
+val VerifiedGreen = Color(0xFF059669)
+val VerifiedGreenContainer = Color(0xFFECFDF5)
+val TrustGold = AccentGold
+val TrustGoldContainer = Color(0xFFFAF5EB)
 
-// Dark Cool Obsidian Canvas
-val DarkCanvas = Color(0xFF0A0F1D)
-val DarkSurface = Color(0xFF111827)
-val DarkSurfaceVariant = Color(0xFF1E293B)
-val DarkCardBorder = Color(0xFF334155)
-val DarkBorderGlow = Color(0x3338BDF8)
+// Canvas, Surface & Borders
+val BackgroundLight = IvoryBackground
+val SurfaceLight = SurfaceWhite
+val SurfaceVariantLight = SurfaceIvoryTint
+val CardBorder = Color(0xFFE8E6DF) // Clean Subtle Ivory/Stone Border
+val CardBorderSubtle = Color(0xFFF0EEE8)
+val TextPrimary = CharcoalNavyText
+val TextSecondary = SlateSecondaryText
+val TextMuted = SlateMutedText
 
-// Cool Gradient Brushes for Visual Polish
+// Dark Enterprise Canvas
+val DarkCanvas = Color(0xFF0B1726)
+val DarkSurface = Color(0xFF102A43)
+val DarkSurfaceVariant = Color(0xFF16324F)
+val DarkCardBorder = Color(0xFF244466)
+val DarkBorderGlow = Color(0x332563EB)
+
+// Enterprise Gradient Brushes
 val CoolHeroGradient = Brush.horizontalGradient(
-    listOf(Color(0xFF0284C7), Color(0xFF6366F1))
+    listOf(Color(0xFF102A43), Color(0xFF1E3A5F))
 )
 val CoolCyanGradient = Brush.linearGradient(
-    listOf(Color(0xFF06B6D4), Color(0xFF0284C7))
+    listOf(Color(0xFF2563EB), Color(0xFF1D4ED8))
 )
 val CoolDarkCardGradient = Brush.verticalGradient(
-    listOf(Color(0xFF1E293B), Color(0xFF0F172A))
+    listOf(Color(0xFF16324F), Color(0xFF102A43))
 )
 val CoolGlassmorphicBorder = Brush.linearGradient(
-    listOf(Color(0x8038BDF8), Color(0x306366F1), Color(0x6038BDF8))
+    listOf(Color(0x60C9A96E), Color(0x302563EB), Color(0x50102A43))
 )
 val FlameGlowGradient = Brush.horizontalGradient(
-    listOf(Color(0xFFF97316), Color(0xFFEF4444))
+    listOf(Color(0xFFC9A96E), Color(0xFFD97706))
 )
 val CoolPillGradient = Brush.horizontalGradient(
-    listOf(Color(0xFF0284C7).copy(alpha = 0.12f), Color(0xFF6366F1).copy(alpha = 0.12f))
+    listOf(Color(0xFF102A43).copy(alpha = 0.08f), Color(0xFF2563EB).copy(alpha = 0.08f))
 )
+val GoldAccentGradient = Brush.horizontalGradient(
+    listOf(Color(0xFFC9A96E), Color(0xFFDFBA73))
+)
+
 

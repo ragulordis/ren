@@ -120,7 +120,7 @@ fun ReportDialog(
                             color = TextPrimary
                         )
                         Text(
-                            text = "QuickNest Scam & Duplicate Shield",
+                            text = "Ren Scam & Duplicate Shield",
                             fontSize = 11.sp,
                             color = TextSecondary
                         )

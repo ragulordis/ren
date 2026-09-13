@@ -48,6 +48,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -75,8 +76,19 @@ fun ProfileScreen(
     modifier: Modifier = Modifier
 ) {
     val userRole by viewModel.userRole.collectAsStateWithLifecycle()
+    val currentUserProfile by viewModel.currentUserProfile.collectAsStateWithLifecycle()
 
     val roles = listOf("Individual", "Property Owner", "Broker", "Builder", "Investor")
+
+    val initials = remember(currentUserProfile.displayName) {
+        currentUserProfile.displayName
+            .split(" ")
+            .filter { it.isNotBlank() }
+            .mapNotNull { it.firstOrNull()?.uppercase() }
+            .take(2)
+            .joinToString("")
+            .ifBlank { "U" }
+    }
 
     LazyColumn(
         modifier = modifier
@@ -109,7 +121,7 @@ fun ProfileScreen(
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("RM", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                            Text(initials, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 22.sp)
                         }
 
                         Column(modifier = Modifier.weight(1f)) {
@@ -118,20 +130,22 @@ fun ProfileScreen(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 Text(
-                                    text = "Ragul M.",
+                                    text = currentUserProfile.displayName.ifBlank { "User Account" },
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = TextPrimary
                                 )
-                                Icon(
-                                    Icons.Default.VerifiedUser,
-                                    contentDescription = "Verified",
-                                    tint = VerifiedGreen,
-                                    modifier = Modifier.size(18.dp)
-                                )
+                                if (currentUserProfile.verificationLevel > 0) {
+                                    Icon(
+                                        Icons.Default.VerifiedUser,
+                                        contentDescription = "Verified",
+                                        tint = VerifiedGreen,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
                             }
                             Text(
-                                text = "+91 98401 ••••• • Kottakuppam",
+                                text = if (currentUserProfile.email.isNotBlank()) currentUserProfile.email else "UID: ${currentUserProfile.uid.take(12)}",
                                 fontSize = 12.sp,
                                 color = TextSecondary
                             )
@@ -141,11 +155,11 @@ fun ProfileScreen(
                             ) {
                                 Surface(
                                     shape = RoundedCornerShape(6.dp),
-                                    color = VerifiedGreenContainer
+                                    color = if (currentUserProfile.verificationLevel > 0) VerifiedGreenContainer else MaterialTheme.colorScheme.surfaceVariant
                                 ) {
                                     Text(
-                                        text = "Level 3 Verified",
-                                        color = VerifiedGreen,
+                                        text = if (currentUserProfile.verificationLevel > 0) "Level ${currentUserProfile.verificationLevel} Verified" else "Pending Verification",
+                                        color = if (currentUserProfile.verificationLevel > 0) VerifiedGreen else MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
@@ -376,7 +390,7 @@ fun ProfileScreen(
                     ) {
                         Icon(Icons.Default.Security, null, tint = VerifiedGreen, modifier = Modifier.size(16.dp))
                         Text(
-                            text = "QuickNest Scam & Duplicate Shield Active",
+                            text = "Ren Scam & Duplicate Shield Active",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary
@@ -388,6 +402,27 @@ fun ProfileScreen(
                         color = TextSecondary
                     )
                 }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Sign Out / Switch Account Button
+            androidx.compose.material3.OutlinedButton(
+                onClick = { viewModel.logout() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("sign_out_button"),
+                shape = RoundedCornerShape(12.dp),
+                colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                    contentColor = androidx.compose.ui.graphics.Color(0xFFDC2626)
+                ),
+                border = androidx.compose.foundation.BorderStroke(1.dp, androidx.compose.ui.graphics.Color(0xFFFECACA))
+            ) {
+                Text(
+                    text = "Sign Out from Ren",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }

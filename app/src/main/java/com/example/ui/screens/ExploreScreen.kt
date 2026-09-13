@@ -81,6 +81,13 @@ import com.example.ui.components.SellingSpeedBadge
 import com.example.ui.components.SkeletonMapView
 import com.example.ui.components.getDrawableResForName
 import com.example.ui.theme.CardBorder
+import com.example.ui.theme.CardBorderSubtle
+import com.example.ui.theme.IvoryBackground
+import com.example.ui.theme.SurfaceWhite
+import com.example.ui.theme.NavyPrimary
+import com.example.ui.theme.BlueCorporate
+import com.example.ui.theme.SurfaceIvoryTint
+import com.example.ui.theme.CharcoalNavyText
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 import com.example.ui.theme.UrgencyFlame
@@ -129,7 +136,7 @@ fun ExploreScreen(
     }
 
     var mapType by remember { mutableStateOf(MapType.NORMAL) }
-    var useRadarMode by remember(isKeyValid) { mutableStateOf(!isKeyValid) }
+    var useRadarMode by remember { mutableStateOf(true) }
 
     // Center coordinates for Kottakuppam/Pondicherry location hub
     val hubCenter = remember { LatLng(11.9800, 79.8350) }
@@ -197,7 +204,7 @@ fun ExploreScreen(
                                 "LAND" -> Color(0xFF059669)
                                 "RENT" -> Color(0xFF0284C7)
                                 "LEASE" -> Color(0xFF7C3AED)
-                                else -> Color(0xFF0F172A)
+                                else -> NavyPrimary
                             },
                             border = androidx.compose.foundation.BorderStroke(
                                 if (isSelected) 2.5.dp else 1.dp,
@@ -236,7 +243,7 @@ fun ExploreScreen(
                 Canvas(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color(0xFF0F172A))
+                        .background(IvoryBackground)
                         .pointerInput(Unit) {
                             detectTapGestures {
                                 viewModel.setExploreSelected(null)
@@ -255,13 +262,13 @@ fun ExploreScreen(
                     }
                     drawPath(
                         path = oceanPath,
-                        color = Color(0xFF1E3A8A).copy(alpha = 0.45f)
+                        color = BlueCorporate.copy(alpha = 0.08f)
                     )
 
                     for (i in 1..8) {
                         val y = h * (i / 9f)
                         drawLine(
-                            color = Color(0xFF334155).copy(alpha = 0.35f),
+                            color = Color(0xFFE2E0D8),
                             start = Offset(0f, y),
                             end = Offset(w, y),
                             strokeWidth = 1f
@@ -273,12 +280,12 @@ fun ExploreScreen(
                     val multiplier = (radiusKm / 5.0).toFloat().coerceIn(0.6f, 1.6f)
 
                     drawCircle(
-                        color = Color(0xFF38BDF8).copy(alpha = 0.12f),
+                        color = BlueCorporate.copy(alpha = 0.06f),
                         radius = baseRadius * multiplier * 1.5f,
                         center = center
                     )
                     drawCircle(
-                        color = Color(0xFF38BDF8).copy(alpha = 0.3f),
+                        color = BlueCorporate.copy(alpha = 0.25f),
                         radius = baseRadius * multiplier * 1.5f,
                         center = center,
                         style = Stroke(width = 1.5f)
@@ -307,16 +314,12 @@ fun ExploreScreen(
                     ) {
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = if (isSelected) UrgencyFlame else when (prop.category.name) {
-                                "LAND" -> Color(0xFF059669)
-                                "RENT" -> Color(0xFF0284C7)
-                                "LEASE" -> Color(0xFF7C3AED)
-                                else -> Color(0xFF0F172A)
-                            },
+                            color = if (isSelected) UrgencyFlame else SurfaceWhite,
                             border = androidx.compose.foundation.BorderStroke(
                                 if (isSelected) 2.dp else 1.dp,
-                                Color.White
-                            )
+                                if (isSelected) UrgencyFlame else CardBorderSubtle
+                            ),
+                            shadowElevation = 4.dp
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
@@ -326,7 +329,7 @@ fun ExploreScreen(
                                 Text(text = prop.category.iconEmoji, fontSize = 12.sp)
                                 Text(
                                     text = prop.formattedPrice,
-                                    color = Color.White,
+                                    color = if (isSelected) Color.White else NavyPrimary,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -347,9 +350,9 @@ fun ExploreScreen(
             // Header Card with search context & quick filter trigger
             Surface(
                 shape = RoundedCornerShape(18.dp),
-                color = Color(0xFF0F172A).copy(alpha = 0.94f),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF334155)),
-                shadowElevation = 8.dp,
+                color = SurfaceWhite,
+                border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderSubtle),
+                shadowElevation = 6.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -368,19 +371,19 @@ fun ExploreScreen(
                             Icon(
                                 imageVector = Icons.Default.Explore,
                                 contentDescription = null,
-                                tint = Color(0xFFD0BCFF),
+                                tint = BlueCorporate,
                                 modifier = Modifier.size(20.dp)
                             )
                             Column {
                                 Text(
                                     text = if (searchQuery.isNotBlank()) "Search: \"$searchQuery\"" else "Interactive Property Map",
-                                    color = Color.White,
+                                    color = NavyPrimary,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
                                     text = "${filteredProperties.size} Properties matching filters",
-                                    color = Color(0xFFCAC4D0),
+                                    color = CharcoalNavyText,
                                     fontSize = 11.sp
                                 )
                             }
@@ -393,8 +396,8 @@ fun ExploreScreen(
                             // Filter Sheet Trigger Button
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
-                                color = if (activeFiltersCount > 0) MaterialTheme.colorScheme.primaryContainer else Color(0xFF2B2830),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF49454F)),
+                                color = if (activeFiltersCount > 0) BlueCorporate else SurfaceWhite,
+                                border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderSubtle),
                                 modifier = Modifier.clickable { viewModel.openFilterSheet() }
                             ) {
                                 Row(
@@ -405,12 +408,12 @@ fun ExploreScreen(
                                     Icon(
                                         imageVector = Icons.Default.FilterList,
                                         contentDescription = "Filters",
-                                        tint = if (activeFiltersCount > 0) MaterialTheme.colorScheme.onPrimaryContainer else Color.White,
+                                        tint = if (activeFiltersCount > 0) Color.White else NavyPrimary,
                                         modifier = Modifier.size(14.dp)
                                     )
                                     Text(
                                         text = if (activeFiltersCount > 0) "Filters ($activeFiltersCount)" else "Filter",
-                                        color = if (activeFiltersCount > 0) MaterialTheme.colorScheme.onPrimaryContainer else Color.White,
+                                        color = if (activeFiltersCount > 0) Color.White else NavyPrimary,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -420,8 +423,8 @@ fun ExploreScreen(
                             // Refresh / Sync Map Data Button
                             Surface(
                                 shape = CircleShape,
-                                color = Color(0xFF0F172A),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.5f)),
+                                color = SurfaceWhite,
+                                border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderSubtle),
                                 modifier = Modifier
                                     .size(32.dp)
                                     .clickable { viewModel.refreshData() }
@@ -430,7 +433,7 @@ fun ExploreScreen(
                                 Icon(
                                     imageVector = Icons.Default.Refresh,
                                     contentDescription = "Refresh Map Data",
-                                    tint = Color(0xFF38BDF8),
+                                    tint = BlueCorporate,
                                     modifier = Modifier
                                         .padding(7.dp)
                                         .fillMaxSize()
@@ -440,7 +443,7 @@ fun ExploreScreen(
                             // Center Location Fab
                             Surface(
                                 shape = CircleShape,
-                                color = Color(0xFF2563EB),
+                                color = BlueCorporate,
                                 modifier = Modifier
                                     .size(32.dp)
                                     .clickable {
@@ -471,7 +474,7 @@ fun ExploreScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Map Style:", color = Color(0xFFCAC4D0), fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                        Text("Map Style:", color = CharcoalNavyText, fontSize = 11.sp, fontWeight = FontWeight.Medium)
 
                         // Normal Google Map
                         MapStyleChip(
@@ -526,8 +529,8 @@ fun ExploreScreen(
                     if (!isKeyValid) {
                         Surface(
                             shape = RoundedCornerShape(10.dp),
-                            color = Color(0xFF1E293B),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF0284C7).copy(alpha = 0.5f)),
+                            color = SurfaceIvoryTint,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderSubtle),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
@@ -538,12 +541,12 @@ fun ExploreScreen(
                                 Icon(
                                     imageVector = Icons.Default.Radar,
                                     contentDescription = null,
-                                    tint = Color(0xFF38BDF8),
+                                    tint = BlueCorporate,
                                     modifier = Modifier.size(14.dp)
                                 )
                                 Text(
                                     text = "Interactive Radar Map Active. Set MAPS_API_KEY in AI Studio Secrets panel to enable Google Maps tiles.",
-                                    color = Color(0xFFE2E8F0),
+                                    color = CharcoalNavyText,
                                     fontSize = 10.5.sp,
                                     lineHeight = 13.sp
                                 )
@@ -571,6 +574,7 @@ fun ExploreScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
                     modifier = Modifier
                         .fillMaxWidth()
+                        .clickable { viewModel.openPropertyDetails(prop) }
                         .testTag("explore_property_preview")
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
@@ -699,10 +703,10 @@ private fun MapStyleChip(
 ) {
     Surface(
         shape = RoundedCornerShape(12.dp),
-        color = if (isSelected) MaterialTheme.colorScheme.primary else Color(0xFF2B2830),
+        color = if (isSelected) BlueCorporate else SurfaceWhite,
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
-            if (isSelected) MaterialTheme.colorScheme.primary else Color(0xFF49454F)
+            if (isSelected) BlueCorporate else CardBorderSubtle
         ),
         modifier = Modifier.clickable { onClick() }
     ) {
@@ -714,14 +718,14 @@ private fun MapStyleChip(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (isSelected) Color.White else Color(0xFFCAC4D0),
+                tint = if (isSelected) Color.White else CharcoalNavyText,
                 modifier = Modifier.size(13.dp)
             )
             Text(
                 text = label,
                 fontSize = 11.sp,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                color = if (isSelected) Color.White else Color(0xFFE6E1E5)
+                color = if (isSelected) Color.White else NavyPrimary
             )
         }
     }

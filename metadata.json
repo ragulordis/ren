@@ -1,6 +1,6 @@
 {
-  "name": "QuickNest",
-  "description": "India's fast local property marketplace for urgent sales, rentals, and leases with smart buyer matching.",
+  "name": "Ren",
+  "description": "Find Your Place - Real Estate & Housing Network across India. Search verified homes, apartments, villas, and plots nationwide.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

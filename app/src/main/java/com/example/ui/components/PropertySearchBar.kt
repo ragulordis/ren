@@ -88,7 +88,7 @@ fun PropertySearchBar(
     maxPrice: Long?,
     onPriceRangeChange: (min: Long?, max: Long?) -> Unit,
     modifier: Modifier = Modifier,
-    availableLocations: List<String> = listOf("All Locations", "Kottakuppam", "Pondicherry", "Auroville", "Serenity Beach"),
+    availableLocations: List<String> = listOf("All Locations", "Chennai", "Bengaluru", "Mumbai", "Delhi NCR", "Hyderabad", "Pune", "Kochi", "Goa", "Pondicherry", "Kottakuppam", "Coimbatore", "Ahmedabad", "Jaipur", "Kolkata"),
     onOpenFilterSheet: (() -> Unit)? = null,
     activeFiltersCount: Int = 0,
     onSearchSubmitted: ((String) -> Unit)? = null

@@ -80,6 +80,12 @@ data class Property(
 
     val formattedSavings: String
         get() = if (savingsAmount > 0) formatIndianCurrency(savingsAmount, ListingType.BUY) else ""
+
+    val isVerified: Boolean
+        get() = verificationLevel >= 2
+
+    val isUrgent: Boolean
+        get() = urgencyScore >= 4 || sellingSpeed == SellingSpeed.URGENT || listingType == ListingType.URGENT_SALE
 }
 
 data class PropertyVisit(

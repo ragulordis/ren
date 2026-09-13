@@ -92,6 +92,13 @@ import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 import com.example.ui.theme.UrgencyFlame
 import com.example.ui.theme.UrgencyFlameContainer
+import com.example.ui.theme.NavyPrimary
+import com.example.ui.theme.BlueCorporate
+import com.example.ui.theme.AccentGold
+import com.example.ui.theme.SurfaceWhite
+import com.example.ui.theme.SurfaceIvoryTint
+import com.example.ui.theme.CharcoalNavyText
+import com.example.ui.theme.SlateSecondaryText
 import com.example.viewmodel.QuickNestViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -119,9 +126,22 @@ fun HomeScreen(
     val smartMatchResults by viewModel.smartMatchResults.collectAsStateWithLifecycle()
     val smartMatchPreferences by viewModel.smartMatchPreferences.collectAsStateWithLifecycle()
     val isSmartMatchLoading by viewModel.isSmartMatchLoading.collectAsStateWithLifecycle()
+    val currentUserProfile by viewModel.currentUserProfile.collectAsStateWithLifecycle()
 
-    var showLocationMenu by remember { mutableStateOf(false) }
-    val locationsList = listOf("Kottakuppam", "Pondicherry", "Auroville", "Serenity Beach", "All Locations")
+    var showLocationPicker by remember { mutableStateOf(false) }
+    val locationsList = listOf(
+        "All Locations", "Chennai", "Bengaluru", "Mumbai", "Delhi NCR",
+        "Hyderabad", "Pune", "Kochi", "Goa", "Pondicherry", "Kottakuppam",
+        "Coimbatore", "Ahmedabad", "Jaipur", "Kolkata"
+    )
+
+    if (showLocationPicker) {
+        com.example.ui.components.IndiaLocationPickerDialog(
+            selectedLocation = selectedLocation,
+            onLocationSelected = { viewModel.selectLocation(it) },
+            onDismissRequest = { showLocationPicker = false }
+        )
+    }
 
     PullToRefreshBox(
         isRefreshing = isRefreshing,
@@ -137,7 +157,7 @@ fun HomeScreen(
             contentPadding = PaddingValues(bottom = 100.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-        // 1. Top Header: Greeting & Hyperlocal Location Picker
+        // 1. Top Header: Greeting & Pan-India Location Picker
         item {
             val livePulseTransition = rememberInfiniteTransition(label = "livePulse")
             val livePulseAlpha by livePulseTransition.animateFloat(
@@ -162,69 +182,52 @@ fun HomeScreen(
                 ) {
                     Column {
                         Text(
-                            text = "Good Evening,",
+                            text = "Good Day,",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "Ragul 👋",
+                            text = "${currentUserProfile.displayName.ifBlank { "Explorer" }} 👋",
                             fontSize = 21.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                     }
 
-                    // Location Indicator & Dropdown on right with live radar beacon
-                    Box {
-                        Column(
-                            horizontalAlignment = Alignment.End,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f))
-                                .clickable { showLocationMenu = true }
-                                .padding(horizontal = 10.dp, vertical = 6.dp)
-                                .testTag("location_selector")
+                    // Location Indicator & Picker on right with live radar beacon
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f))
+                            .clickable { showLocationPicker = true }
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                            .testTag("location_selector")
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text(
-                                    text = selectedLocation,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .size(9.dp)
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = livePulseAlpha), CircleShape)
-                                )
-                            }
                             Text(
-                                text = "PONDICHERRY, INDIA",
-                                fontSize = 9.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = FontWeight.SemiBold,
-                                letterSpacing = 0.5.sp
+                                text = selectedLocation,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(9.dp)
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = livePulseAlpha), CircleShape)
                             )
                         }
-
-                        DropdownMenu(
-                            expanded = showLocationMenu,
-                            onDismissRequest = { showLocationMenu = false }
-                        ) {
-                            locationsList.forEach { loc ->
-                                DropdownMenuItem(
-                                    text = { Text(loc, fontWeight = if (loc == selectedLocation) FontWeight.Bold else FontWeight.Normal) },
-                                    onClick = {
-                                        viewModel.selectLocation(loc)
-                                        showLocationMenu = false
-                                    }
-                                )
-                            }
-                        }
+                        Text(
+                            text = "INDIA 🇮🇳",
+                            fontSize = 9.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 0.5.sp
+                        )
                     }
                 }
             }
@@ -289,11 +292,16 @@ fun HomeScreen(
                             },
                             shape = RoundedCornerShape(12.dp),
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                labelColor = TextPrimary
+                                selectedContainerColor = NavyPrimary,
+                                selectedLabelColor = Color.White,
+                                selectedLeadingIconColor = Color.White,
+                                containerColor = SurfaceWhite,
+                                labelColor = CharcoalNavyText
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = isSelected,
+                                borderColor = if (isSelected) NavyPrimary else CardBorder
                             ),
                             modifier = Modifier.testTag("filter_chip_${typeKey.lowercase().replace(" ", "_").replace("/", "_")}")
                         )
@@ -444,23 +452,17 @@ fun HomeScreen(
                         .fillMaxWidth()
                         .scale(aiScale)
                         .clip(RoundedCornerShape(18.dp))
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(Color(0xFF0A1128), Color(0xFF131D3B), Color(0xFF1E1B4B))
-                            )
-                        )
+                        .background(NavyPrimary)
                         .border(
                             1.dp,
-                            Brush.horizontalGradient(
-                                listOf(Color(0xFF00E5FF).copy(alpha = aiGlowAlpha), Color(0xFF6366F1).copy(alpha = aiGlowAlpha))
-                            ),
+                            AccentGold.copy(alpha = aiGlowAlpha * 0.7f),
                             RoundedCornerShape(18.dp)
                         )
                         .clickable(
                             interactionSource = aiInteractionSource,
                             indication = null
                         ) { viewModel.openAiAssistant() }
-                        .padding(horizontal = 14.dp, vertical = 11.dp)
+                        .padding(horizontal = 14.dp, vertical = 12.dp)
                         .testTag("ai_assistant_banner"),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -472,31 +474,26 @@ fun HomeScreen(
                         Box(
                             modifier = Modifier
                                 .size(36.dp)
-                                .background(
-                                    Brush.linearGradient(
-                                        listOf(Color(0xFF00E5FF).copy(alpha = 0.3f), Color(0xFF6366F1).copy(alpha = 0.4f))
-                                    ),
-                                    CircleShape
-                                ),
+                                .background(AccentGold.copy(alpha = 0.2f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.AutoAwesome,
                                 contentDescription = null,
-                                tint = Color(0xFF38BDF8),
+                                tint = AccentGold,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
                         Column {
                             Text(
-                                text = "QuickNest AI Assistant",
+                                text = "Ren AI Advisory",
                                 color = Color.White,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "\"House near Auroville under ₹20,000\"",
-                                color = Color(0xFF94A3B8),
+                                text = "Instant valuation & intelligent matching",
+                                color = Color(0xFFCBD5E1),
                                 fontSize = 11.sp
                             )
                         }
@@ -505,14 +502,14 @@ fun HomeScreen(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFF00E5FF).copy(alpha = 0.15f))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .background(AccentGold)
+                            .padding(horizontal = 10.dp, vertical = 5.dp)
                     ) {
                         Text(
-                            text = "Ask AI →",
-                            color = Color(0xFF38BDF8),
+                            text = "Consult AI →",
+                            color = NavyPrimary,
                             fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.ExtraBold
                         )
                     }
                 }
@@ -767,10 +764,10 @@ fun HomeScreen(
 
                         Surface(
                             shape = RoundedCornerShape(16.dp),
-                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+                            color = if (isSelected) NavyPrimary else SurfaceWhite,
                             border = androidx.compose.foundation.BorderStroke(
                                 1.dp,
-                                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f) else CardBorder
+                                if (isSelected) NavyPrimary else CardBorder
                             ),
                             modifier = Modifier
                                 .scale(catScale)
@@ -792,7 +789,7 @@ fun HomeScreen(
                                     modifier = Modifier
                                         .size(38.dp)
                                         .background(
-                                            if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant,
+                                            if (isSelected) AccentGold.copy(alpha = 0.25f) else SurfaceIvoryTint,
                                             CircleShape
                                         ),
                                     contentAlignment = Alignment.Center
@@ -803,7 +800,7 @@ fun HomeScreen(
                                     text = cat.label,
                                     fontSize = 11.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                    color = if (isSelected) Color.White else CharcoalNavyText
                                 )
                             }
                         }

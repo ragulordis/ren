@@ -1,0 +1,18 @@
+package com.example.domain.usecase
+
+import com.example.data.model.UserProfile
+import com.example.data.repository.AuthRepository
+import kotlinx.coroutines.flow.Flow
+
+/**
+ * UseCase to observe authentication state and retrieve active user profile.
+ */
+class ObserveUserProfileUseCase(
+    private val authRepository: AuthRepository
+) {
+    val authState: Flow<UserProfile?> = authRepository.authState
+
+    fun getCurrentUser(): UserProfile = authRepository.getCurrentUser()
+
+    fun getCurrentUserId(): String = authRepository.getCurrentUserId()
+}

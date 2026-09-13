@@ -57,6 +57,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.CardBorder
 import com.example.ui.theme.CardBorderSubtle
+import com.example.ui.theme.IvoryBackground
+import com.example.ui.theme.SurfaceWhite
+import com.example.ui.theme.NavyPrimary
+import com.example.ui.theme.BlueCorporate
+import com.example.ui.theme.SurfaceIvoryTint
+import com.example.ui.theme.CharcoalNavyText
 
 /**
  * Creates a fluid cyber-luxe shimmer brush that sweeps across UI elements.
@@ -67,24 +73,13 @@ fun rememberShimmerBrush(
     targetValue: Float = 1400f,
     durationMillis: Int = 1300
 ): Brush {
-    val isDark = isSystemInDarkTheme()
-    val shimmerColors = if (isDark) {
-        listOf(
-            Color(0xFF1E293B).copy(alpha = 0.85f),
-            Color(0xFF334155).copy(alpha = 0.95f),
-            Color(0xFF38BDF8).copy(alpha = 0.35f), // Electric Cyan cyber accent
-            Color(0xFF334155).copy(alpha = 0.95f),
-            Color(0xFF1E293B).copy(alpha = 0.85f)
-        )
-    } else {
-        listOf(
-            Color(0xFFE2E8F0),
-            Color(0xFFF1F5F9),
-            Color(0xFF0284C7).copy(alpha = 0.22f), // Cyan highlight
-            Color(0xFFF1F5F9),
-            Color(0xFFE2E8F0)
-        )
-    }
+    val shimmerColors = listOf(
+        Color(0xFFEBE8DF),
+        Color(0xFFF8F7F4),
+        Color(0xFF2563EB).copy(alpha = 0.15f),
+        Color(0xFFF8F7F4),
+        Color(0xFFEBE8DF)
+    )
 
     val transition = rememberInfiniteTransition(label = "shimmerTransition")
     val translateAnim by transition.animateFloat(
@@ -316,11 +311,11 @@ fun SkeletonUrgentPropertyCard(
         modifier = modifier
             .width(290.dp)
             .clip(RoundedCornerShape(20.dp))
-            .border(1.dp, Color(0xFF334155), RoundedCornerShape(20.dp))
+            .border(1.dp, CardBorderSubtle, RoundedCornerShape(20.dp))
             .testTag("skeleton_urgent_property_card"),
         shape = RoundedCornerShape(20.dp),
-        color = Color(0xFF0F172A).copy(alpha = 0.95f),
-        shadowElevation = 6.dp
+        color = SurfaceWhite,
+        shadowElevation = 4.dp
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
@@ -347,7 +342,7 @@ fun SkeletonUrgentPropertyCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFF1E293B).copy(alpha = 0.7f))
+                    .background(SurfaceIvoryTint)
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -490,7 +485,7 @@ fun SkeletonMapView(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF0A0F1D))
+            .background(IvoryBackground)
             .testTag("skeleton_map_view")
     ) {
         // 1. Interactive canvas gridlines & pulsing radar hubs
@@ -503,7 +498,7 @@ fun SkeletonMapView(
             var x = 0f
             while (x < w) {
                 drawLine(
-                    color = Color(0xFF1E293B).copy(alpha = 0.45f),
+                    color = Color(0xFFE2E0D8),
                     start = Offset(x, 0f),
                     end = Offset(x, h),
                     strokeWidth = 1f
@@ -514,7 +509,7 @@ fun SkeletonMapView(
             var y = 0f
             while (y < h) {
                 drawLine(
-                    color = Color(0xFF1E293B).copy(alpha = 0.45f),
+                    color = Color(0xFFE2E0D8),
                     start = Offset(0f, y),
                     end = Offset(w, y),
                     strokeWidth = 1f
@@ -532,7 +527,7 @@ fun SkeletonMapView(
             }
             drawPath(
                 path = coastPath,
-                color = Color(0xFF0369A1).copy(alpha = 0.25f)
+                color = BlueCorporate.copy(alpha = 0.08f)
             )
 
             // Radar hub center near Kottakuppam/Pondicherry
@@ -540,13 +535,13 @@ fun SkeletonMapView(
 
             // Expanding radar sonar waves
             drawCircle(
-                color = Color(0xFF38BDF8).copy(alpha = pulseAlpha1),
+                color = BlueCorporate.copy(alpha = pulseAlpha1 * 0.5f),
                 radius = pulseRadius1.dp.toPx(),
                 center = hubCenter,
                 style = Stroke(width = 2.dp.toPx())
             )
             drawCircle(
-                color = Color(0xFF38BDF8).copy(alpha = pulseAlpha2),
+                color = BlueCorporate.copy(alpha = pulseAlpha2 * 0.4f),
                 radius = pulseRadius2.dp.toPx(),
                 center = hubCenter,
                 style = Stroke(width = 1.5.dp.toPx())
@@ -554,12 +549,12 @@ fun SkeletonMapView(
 
             // Center beacon glow
             drawCircle(
-                color = Color(0xFF0284C7).copy(alpha = 0.8f),
+                color = BlueCorporate.copy(alpha = 0.6f),
                 radius = 7.dp.toPx(),
                 center = hubCenter
             )
             drawCircle(
-                color = Color.White,
+                color = SurfaceWhite,
                 radius = 3.dp.toPx(),
                 center = hubCenter
             )
@@ -587,12 +582,12 @@ fun SkeletonMapView(
             ) {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFF0F172A).copy(alpha = 0.9f),
+                    color = SurfaceWhite,
                     border = androidx.compose.foundation.BorderStroke(
                         1.5.dp,
-                        if (index == 1) Color(0xFF38BDF8) else Color(0xFF475569)
+                        if (index == 1) BlueCorporate else CardBorderSubtle
                     ),
-                    shadowElevation = 8.dp
+                    shadowElevation = 4.dp
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
@@ -619,9 +614,9 @@ fun SkeletonMapView(
         // 3. Center Floating Live Cloud Sync Pill
         Surface(
             shape = RoundedCornerShape(20.dp),
-            color = Color(0xFF0F172A).copy(alpha = 0.92f),
-            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.5f)),
-            shadowElevation = 10.dp,
+            color = SurfaceWhite,
+            border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderSubtle),
+            shadowElevation = 6.dp,
             modifier = Modifier
                 .align(Alignment.Center)
                 .offset(y = (-40).dp)
@@ -635,12 +630,12 @@ fun SkeletonMapView(
                 Icon(
                     imageVector = Icons.Default.Radar,
                     contentDescription = null,
-                    tint = Color(0xFF38BDF8),
+                    tint = BlueCorporate,
                     modifier = Modifier.size(18.dp)
                 )
                 Text(
-                    text = "Loading Firestore Map Coordinates...",
-                    color = Color.White,
+                    text = "Loading Kottakuppam Map...",
+                    color = NavyPrimary,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -650,9 +645,9 @@ fun SkeletonMapView(
         // 4. Top Map Header Skeleton Overlay
         Surface(
             shape = RoundedCornerShape(18.dp),
-            color = Color(0xFF0F172A).copy(alpha = 0.94f),
-            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF334155)),
-            shadowElevation = 8.dp,
+            color = SurfaceWhite,
+            border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderSubtle),
+            shadowElevation = 4.dp,
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
@@ -721,9 +716,9 @@ fun SkeletonMapView(
         // 5. Bottom Preview Card Skeleton
         Surface(
             shape = RoundedCornerShape(22.dp),
-            color = Color(0xFF0F172A).copy(alpha = 0.96f),
-            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.4f)),
-            shadowElevation = 14.dp,
+            color = SurfaceWhite,
+            border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderSubtle),
+            shadowElevation = 6.dp,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()

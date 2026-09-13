@@ -102,24 +102,6 @@ class FirestoreService {
     }
 
     /**
-     * Seed initial default properties to Firestore if empty, ensuring real Firestore records exist
-     */
-    suspend fun seedDefaultPropertiesIfEmpty(defaultProperties: List<Property>) {
-        val db = firestore ?: return
-        runCatching {
-            val snapshot = db.collection("properties").limit(1).get().await()
-            if (snapshot.isEmpty) {
-                Log.d("FirestoreService", "Seeding ${defaultProperties.size} default properties to Firestore...")
-                defaultProperties.forEach { prop ->
-                    saveProperty(prop)
-                }
-            }
-        }.onFailure {
-            Log.w("FirestoreService", "Failed to seed default properties: ${it.message}")
-        }
-    }
-
-    /**
      * Executes targeted Firestore queries against the "properties" collection based on user preferences.
      * Implements a multi-tier query strategy:
      * - Tier 1: Compound Firestore query on location, propertyType, and budget threshold
