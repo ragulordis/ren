@@ -195,8 +195,10 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
 
     if (!isLoggedIn) {
         com.example.ui.screens.LoginScreen(
-            onLoginSuccess = { name, email, role, city ->
-                viewModel.loginWithGoogle(name, email, role, city)
+            onGoogleSignIn = { idToken, city, onError ->
+                viewModel.signInWithGoogle(idToken, city) { result ->
+                    result.onFailure { onError(it.message ?: "Google Sign-In failed") }
+                }
             },
             onContinueAsGuest = {
                 viewModel.continueAsGuest()

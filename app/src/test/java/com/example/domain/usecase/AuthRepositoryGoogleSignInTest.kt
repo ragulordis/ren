@@ -20,32 +20,26 @@ class AuthRepositoryGoogleSignInTest {
     }
 
     @Test
-    fun `signInWithGoogleAccount authenticates user and emits SignedIn auth state`() = runTest {
-        val result = authRepository.signInWithGoogleAccount(
-            email = "ragulordis@gmail.com",
-            displayName = "Ragul Ordis",
-            photoUrl = null,
-            role = UserRole.BUYER
+    fun `signInWithGoogle authenticates user and emits SignedIn auth state`() = runTest {
+        val result = authRepository.signInWithGoogle(
+            idToken = "sample-google-id-token"
         )
 
         assertTrue(result.isSuccess)
         val profile = result.getOrNull()
-        assertEquals("Ragul Ordis", profile?.displayName)
-        assertEquals("ragulordis@gmail.com", profile?.email)
+        assertEquals("Google User", profile?.displayName)
+        assertEquals("google@test.com", profile?.email)
         assertEquals(UserRole.BUYER, profile?.role)
 
         val authState = authRepository.authState.first()
         assertTrue(authState is AuthState.SignedIn)
-        assertEquals("ragulordis@gmail.com", (authState as AuthState.SignedIn).user.email)
+        assertEquals("google@test.com", (authState as AuthState.SignedIn).user.email)
     }
 
     @Test
     fun `signing out after Google sign in transitions to SignedOut state`() = runTest {
-        authRepository.signInWithGoogleAccount(
-            email = "ragulordis@gmail.com",
-            displayName = "Ragul Ordis",
-            photoUrl = null,
-            role = UserRole.BUYER
+        authRepository.signInWithGoogle(
+            idToken = "sample-google-id-token"
         )
 
         authRepository.signOut()

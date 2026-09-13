@@ -72,24 +72,6 @@ class FakeAuthRepository(
         return Result.success(user)
     }
 
-    override suspend fun signInWithGoogleAccount(
-        email: String,
-        displayName: String,
-        photoUrl: String?,
-        role: UserRole
-    ): Result<UserProfile> {
-        val user = UserProfile(
-            uid = "test-google-${email.hashCode()}",
-            displayName = displayName,
-            email = email,
-            photoUrl = photoUrl ?: "",
-            role = role
-        )
-        currentUser = user
-        _authState.value = AuthState.SignedIn(user)
-        return Result.success(user)
-    }
-
     override suspend fun signInWithGoogleCredential(credential: AuthCredential): Result<UserProfile> {
         val user = UserProfile(
             uid = "test-google-cred-uid",

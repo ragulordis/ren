@@ -22,7 +22,7 @@ interface PropertyRepository {
     val savedProperties: Flow<List<Property>>
     val allVisits: Flow<List<PropertyVisit>>
 
-    suspend fun ensureInitialized(seedLocalDevIfEmpty: Boolean = true)
+    suspend fun ensureInitialized(seedLocalDevIfEmpty: Boolean = false)
     suspend fun syncWithFirestore(remoteProperties: List<Property>)
     suspend fun refreshFromFirestore(): Result<Int>
     suspend fun toggleSave(propertyId: String, currentSaved: Boolean)

@@ -30,16 +30,34 @@ typealias SortOption = com.example.data.model.SortOption
 class QuickNestViewModel(application: Application) : AndroidViewModel(application) {
 
     private val prefs = application.getSharedPreferences("ren_app_prefs", Context.MODE_PRIVATE)
-    private val repository: PropertyRepository
+    private val db = QuickNestDatabase.getInstance(application)
     private val firestoreService = com.example.data.remote.FirestoreService()
+    private val repository: PropertyRepository = com.example.data.repository.PropertyRepositoryImpl(db.propertyDao(), firestoreService)
     private val authRepository: com.example.data.repository.AuthRepository = com.example.data.repository.AuthRepositoryImpl()
+    private val postListingUseCase = com.example.domain.usecase.PostListingUseCase(repository, authRepository)
     private var chatCollectionJob: Job? = null
+
+    // Feedback message (Snackbar/toast events) - initialized before any collector can emit
+    private val _feedbackMessage = MutableStateFlow<String?>(null)
+    val feedbackMessage: StateFlow<String?> = _feedbackMessage.asStateFlow()
+
+    fun triggerFeedback(message: String) {
+        _feedbackMessage.value = message
+    }
+
+    fun showFeedback(message: String) {
+        _feedbackMessage.value = message
+    }
+
+    fun clearFeedbackMessage() {
+        _feedbackMessage.value = null
+    }
 
     // Onboarding and Auth State
     private val _isOnboarded = MutableStateFlow(prefs.getBoolean("is_onboarded", false))
     val isOnboarded: StateFlow<Boolean> = _isOnboarded.asStateFlow()
 
-    private val _isLoggedIn = MutableStateFlow(prefs.getBoolean("is_guest_mode", false))
+    private val _isLoggedIn = MutableStateFlow(authRepository.isAuthenticated() || prefs.getBoolean("is_guest_mode", false))
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
 
     val authState: StateFlow<com.example.data.model.AuthState> = authRepository.authState
@@ -50,13 +68,12 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
         )
 
     // Domain Use Cases
-    private val getPropertiesUseCase = com.example.domain.usecase.GetPropertiesUseCase(com.example.data.repository.PropertyRepositoryImpl(QuickNestDatabase.getInstance(application).propertyDao()))
-    private val scheduleVisitUseCase = com.example.domain.usecase.ScheduleVisitUseCase(com.example.data.repository.PropertyRepositoryImpl(QuickNestDatabase.getInstance(application).propertyDao()), authRepository)
-    private val sendChatMessageUseCase = com.example.domain.usecase.SendChatMessageUseCase(com.example.data.repository.PropertyRepositoryImpl(QuickNestDatabase.getInstance(application).propertyDao()), authRepository)
-    private val smartMatchUseCase = com.example.domain.usecase.SmartMatchUseCase(com.example.data.repository.PropertyRepositoryImpl(QuickNestDatabase.getInstance(application).propertyDao()))
-    private val toggleSaveUseCase = com.example.domain.usecase.ToggleSavePropertyUseCase(com.example.data.repository.PropertyRepositoryImpl(QuickNestDatabase.getInstance(application).propertyDao()))
+    private val getPropertiesUseCase = com.example.domain.usecase.GetPropertiesUseCase(repository)
+    private val scheduleVisitUseCase = com.example.domain.usecase.ScheduleVisitUseCase(repository, authRepository)
+    private val sendChatMessageUseCase = com.example.domain.usecase.SendChatMessageUseCase(repository, authRepository)
+    private val smartMatchUseCase = com.example.domain.usecase.SmartMatchUseCase(repository)
+    private val toggleSaveUseCase = com.example.domain.usecase.ToggleSavePropertyUseCase(repository)
     private val observeUserProfileUseCase = com.example.domain.usecase.ObserveUserProfileUseCase(authRepository)
-    private val postListingUseCase: com.example.domain.usecase.PostListingUseCase
 
     private val _currentUserProfile = MutableStateFlow<UserProfile?>(null)
     val currentUserProfile: StateFlow<UserProfile?> = _currentUserProfile.asStateFlow()
@@ -69,108 +86,6 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
 
     private val _isSyncingCloud = MutableStateFlow(false)
     val isSyncingCloud: StateFlow<Boolean> = _isSyncingCloud.asStateFlow()
-
-    init {
-        val db = QuickNestDatabase.getInstance(application)
-        repository = com.example.data.repository.PropertyRepositoryImpl(db.propertyDao(), firestoreService)
-        postListingUseCase = com.example.domain.usecase.PostListingUseCase(repository, authRepository)
-
-        // Observe real Firebase Auth state changes
-        viewModelScope.launch {
-            authRepository.authState.collect { state ->
-                when (state) {
-                    is com.example.data.model.AuthState.SignedIn -> {
-                        _currentUserProfile.value = state.user
-                        _isLoggedIn.value = true
-                    }
-                    is com.example.data.model.AuthState.SignedOut -> {
-                        _currentUserProfile.value = null
-                        if (!prefs.getBoolean("is_guest_mode", false)) {
-                            _isLoggedIn.value = false
-                        }
-                    }
-                    is com.example.data.model.AuthState.Error -> {
-                        _currentUserProfile.value = null
-                        if (!prefs.getBoolean("is_guest_mode", false)) {
-                            _isLoggedIn.value = false
-                        }
-                        _feedbackMessage.value = state.message
-                    }
-                    is com.example.data.model.AuthState.Loading -> {
-                        // Loading state
-                    }
-                }
-            }
-        }
-
-        // Restore saved session if available
-        val savedEmail = prefs.getString("user_email", null)
-        val savedName = prefs.getString("user_name", null)
-        if (!savedEmail.isNullOrBlank() && !prefs.getBoolean("is_guest_mode", false)) {
-            viewModelScope.launch {
-                authRepository.signInWithGoogleAccount(
-                    email = savedEmail,
-                    displayName = savedName ?: "Ren Member",
-                    photoUrl = null,
-                    role = UserRole.BUYER
-                )
-            }
-        }
-
-        viewModelScope.launch {
-            _isLoading.value = true
-            repository.ensureInitialized()
-            kotlinx.coroutines.delay(200)
-            _isLoading.value = false
-            runSmartMatchQuery()
-        }
-
-        // Real-time synchronization from Firestore collection
-        viewModelScope.launch {
-            _isSyncingCloud.value = true
-            runCatching {
-                firestoreService.streamProperties().collect { remoteList ->
-                    if (remoteList.isNotEmpty()) {
-                        repository.syncWithFirestore(remoteList)
-                    }
-                }
-            }
-            _isSyncingCloud.value = false
-        }
-    }
-
-    fun refreshData() {
-        viewModelScope.launch {
-            _isLoading.value = true
-            repository.ensureInitialized()
-            kotlinx.coroutines.delay(350)
-            _isLoading.value = false
-        }
-    }
-
-    /**
-     * Manual SwipeRefresh action to fetch the latest properties from Firestore
-     * and update the local database.
-     */
-    fun refreshProperties() {
-        viewModelScope.launch {
-            _isRefreshing.value = true
-            try {
-                val result = repository.refreshFromFirestore()
-                val count = result.getOrDefault(0)
-                if (count > 0) {
-                    _feedbackMessage.value = "Synced latest properties from Firestore"
-                } else {
-                    _feedbackMessage.value = "Property listings are up to date"
-                }
-            } catch (e: Exception) {
-                _feedbackMessage.value = "Refreshed property listings"
-            } finally {
-                kotlinx.coroutines.delay(500)
-                _isRefreshing.value = false
-            }
-        }
-    }
 
     val allProperties: StateFlow<List<Property>> = repository.allProperties
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -187,22 +102,6 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun setTab(index: Int) {
         _currentTab.value = index
-    }
-
-    // Feedback message (Snackbar/toast events)
-    private val _feedbackMessage = MutableStateFlow<String?>(null)
-    val feedbackMessage: StateFlow<String?> = _feedbackMessage.asStateFlow()
-
-    fun triggerFeedback(message: String) {
-        _feedbackMessage.value = message
-    }
-
-    fun showFeedback(message: String) {
-        _feedbackMessage.value = message
-    }
-
-    fun clearFeedbackMessage() {
-        _feedbackMessage.value = null
     }
 
     // Filters
@@ -440,6 +339,90 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
     private val _showSmartMatchDialog = MutableStateFlow(false)
     val showSmartMatchDialog: StateFlow<Boolean> = _showSmartMatchDialog.asStateFlow()
 
+    init {
+        // Observe real Firebase Auth state changes
+        viewModelScope.launch {
+            authRepository.authState.collect { state ->
+                when (state) {
+                    is com.example.data.model.AuthState.SignedIn -> {
+                        _currentUserProfile.value = state.user
+                        _isLoggedIn.value = true
+                    }
+                    is com.example.data.model.AuthState.SignedOut -> {
+                        _currentUserProfile.value = null
+                        if (!prefs.getBoolean("is_guest_mode", false)) {
+                            _isLoggedIn.value = false
+                        }
+                    }
+                    is com.example.data.model.AuthState.Error -> {
+                        _currentUserProfile.value = null
+                        if (!prefs.getBoolean("is_guest_mode", false)) {
+                            _isLoggedIn.value = false
+                        }
+                        _feedbackMessage.value = state.message
+                    }
+                    is com.example.data.model.AuthState.Loading -> {
+                        // Loading state
+                    }
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            _isLoading.value = true
+            repository.ensureInitialized(seedLocalDevIfEmpty = com.example.BuildConfig.DEBUG)
+            kotlinx.coroutines.delay(200)
+            _isLoading.value = false
+            runSmartMatchQuery()
+        }
+
+        // Real-time synchronization from Firestore collection
+        viewModelScope.launch {
+            _isSyncingCloud.value = true
+            runCatching {
+                firestoreService.streamProperties().collect { remoteList ->
+                    if (remoteList.isNotEmpty()) {
+                        repository.syncWithFirestore(remoteList)
+                    }
+                }
+            }
+            _isSyncingCloud.value = false
+        }
+    }
+
+    fun refreshData() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            repository.ensureInitialized()
+            kotlinx.coroutines.delay(350)
+            _isLoading.value = false
+        }
+    }
+
+    /**
+     * Manual SwipeRefresh action to fetch the latest properties from Firestore
+     * and update the local database.
+     */
+    fun refreshProperties() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                val result = repository.refreshFromFirestore()
+                val count = result.getOrDefault(0)
+                if (count > 0) {
+                    _feedbackMessage.value = "Synced latest properties from Firestore"
+                } else {
+                    _feedbackMessage.value = "Property listings are up to date"
+                }
+            } catch (e: Exception) {
+                _feedbackMessage.value = "Refreshed property listings"
+            } finally {
+                kotlinx.coroutines.delay(500)
+                _isRefreshing.value = false
+            }
+        }
+    }
+
     fun openSmartMatchDialog() {
         _showSmartMatchDialog.value = true
         if (_smartMatchResults.value.isEmpty()) {
@@ -643,9 +626,6 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
                 prefs.edit()
                     .putBoolean("is_onboarded", true)
                     .putBoolean("is_guest_mode", false)
-                    .putString("user_email", profile.email)
-                    .putString("user_name", profile.displayName)
-                    .putString("user_uid", profile.uid)
                     .apply()
                 if (preferredCity != "All Locations") {
                     selectLocation(preferredCity)
@@ -655,43 +635,6 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
                 _feedbackMessage.value = err.message ?: "Google Sign-In failed"
             }
             onResult(result)
-        }
-    }
-
-    fun loginWithGoogle(
-        name: String,
-        email: String,
-        role: UserRole,
-        preferredCity: String,
-        photoUrl: String? = null
-    ) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            val result = authRepository.signInWithGoogleAccount(
-                email = email,
-                displayName = name,
-                photoUrl = photoUrl,
-                role = role
-            )
-            _isLoading.value = false
-            result.onSuccess { profile ->
-                _currentUserProfile.value = profile
-                _isLoggedIn.value = true
-                _isOnboarded.value = true
-                prefs.edit()
-                    .putBoolean("is_onboarded", true)
-                    .putBoolean("is_guest_mode", false)
-                    .putString("user_email", profile.email)
-                    .putString("user_name", profile.displayName)
-                    .putString("user_uid", profile.uid)
-                    .apply()
-                if (preferredCity != "All Locations") {
-                    selectLocation(preferredCity)
-                }
-                _feedbackMessage.value = "Welcome to Ren, ${profile.displayName}!"
-            }.onFailure { err ->
-                _feedbackMessage.value = err.message ?: "Authentication failed"
-            }
         }
     }
 
@@ -724,6 +667,8 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
             .remove("user_email")
             .remove("user_name")
             .remove("user_uid")
+            .remove("user_role")
+            .remove("is_logged_in")
             .apply()
         _currentUserProfile.value = null
         _isLoggedIn.value = false

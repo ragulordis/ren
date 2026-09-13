@@ -119,7 +119,7 @@ val POPULAR_INDIAN_CITIES = listOf(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
-    onLoginSuccess: (name: String, email: String, role: UserRole, preferredCity: String) -> Unit,
+    onGoogleSignIn: (idToken: String, preferredCity: String, onError: (String) -> Unit) -> Unit,
     onContinueAsGuest: () -> Unit,
     onEmailSignIn: ((email: String, password: String, onError: (String) -> Unit) -> Unit)? = null,
     onEmailSignUp: ((name: String, email: String, password: String, role: UserRole, preferredCity: String, onError: (String) -> Unit) -> Unit)? = null,
@@ -128,11 +128,6 @@ fun LoginScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var isLoading by remember { mutableStateOf(false) }
-    var showGoogleAccountSheet by remember { mutableStateOf(false) }
-    var showCustomGoogleAccountInput by remember { mutableStateOf(false) }
-    var customGoogleName by remember { mutableStateOf("") }
-    var customGoogleEmail by remember { mutableStateOf("") }
-    var customGoogleError by remember { mutableStateOf<String?>(null) }
     var loginMethod by remember { mutableStateOf("google") } // "google" or "email"
 
     // Form states
@@ -144,20 +139,6 @@ fun LoginScreen(
     var selectedCity by remember { mutableStateOf("Chennai") }
     var showCityDropdown by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-
-    // Google accounts to simulate authentic Google Sign-In picker
-    val googleAccounts = listOf(
-        GoogleAccountItem(
-            name = "Ragul Ordis",
-            email = "ragulordis@gmail.com",
-            initials = "RO"
-        ),
-        GoogleAccountItem(
-            name = "Ragul Property Investor",
-            email = "ragul.invest@gmail.com",
-            initials = "RI"
-        )
-    )
 
     Box(
         modifier = modifier
@@ -243,6 +224,7 @@ fun LoginScreen(
                     Button(
                         onClick = {
                             errorMessage = null
+                            isLoading = true
                             scope.launch {
                                 try {
                                     val credentialManager = CredentialManager.create(context)
@@ -260,20 +242,21 @@ fun LoginScreen(
                                     val credential = result.credential
                                     if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
                                         val googleIdToken = GoogleIdTokenCredential.createFrom(credential.data)
-                                        onLoginSuccess(
-                                            googleIdToken.displayName ?: googleIdToken.id,
-                                            googleIdToken.id,
-                                            selectedRole,
+                                        onGoogleSignIn(
+                                            googleIdToken.idToken,
                                             selectedCity
-                                        )
-                                        return@launch
+                                        ) { err ->
+                                            isLoading = false
+                                            errorMessage = err
+                                        }
+                                    } else {
+                                        isLoading = false
+                                        errorMessage = "Received unsupported credential type"
                                     }
                                 } catch (e: Exception) {
-                                    Log.d("LoginScreen", "CredentialManager fallback to account selector: ${e.message}")
+                                    isLoading = false
+                                    errorMessage = e.localizedMessage ?: "Google Sign-In failed or was cancelled"
                                 }
-                                showCustomGoogleAccountInput = false
-                                customGoogleError = null
-                                showGoogleAccountSheet = true
                             }
                         },
                         modifier = Modifier
@@ -535,21 +518,25 @@ fun LoginScreen(
                                 emailInput.substringBefore("@").replace(".", " ")
                                     .replaceFirstChar { it.uppercase() }
                             }
-                            if (isSignUp && onEmailSignUp != null) {
-                                onEmailSignUp(displayName, emailInput.trim(), passwordInput, selectedRole, selectedCity) { error ->
+                            if (isSignUp) {
+                                if (onEmailSignUp != null) {
+                                    onEmailSignUp(displayName, emailInput.trim(), passwordInput, selectedRole, selectedCity) { error ->
+                                        isLoading = false
+                                        errorMessage = error
+                                    }
+                                } else {
                                     isLoading = false
-                                    errorMessage = error
-                                }
-                            } else if (!isSignUp && onEmailSignIn != null) {
-                                onEmailSignIn(emailInput.trim(), passwordInput) { error ->
-                                    isLoading = false
-                                    errorMessage = error
+                                    errorMessage = "Registration is currently unavailable"
                                 }
                             } else {
-                                scope.launch {
-                                    delay(500)
+                                if (onEmailSignIn != null) {
+                                    onEmailSignIn(emailInput.trim(), passwordInput) { error ->
+                                        isLoading = false
+                                        errorMessage = error
+                                    }
+                                } else {
                                     isLoading = false
-                                    onLoginSuccess(displayName, emailInput.trim(), selectedRole, selectedCity)
+                                    errorMessage = "Sign in is currently unavailable"
                                 }
                             }
                         },
@@ -656,324 +643,4 @@ fun LoginScreen(
             }
         }
     }
-
-    // Google Account Picker Bottom Sheet
-    if (showGoogleAccountSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showGoogleAccountSheet = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = Color.White,
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                if (!showCustomGoogleAccountInput) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_google_logo),
-                            contentDescription = "Google",
-                            modifier = Modifier.size(26.dp)
-                        )
-                        Column {
-                            Text(
-                                text = "Choose an account",
-                                fontSize = 17.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = NavyPrimary
-                            )
-                            Text(
-                                text = "to continue to Ren (Real Estate Network)",
-                                fontSize = 12.sp,
-                                color = SlateSecondaryText
-                            )
-                        }
-                    }
-
-                    HorizontalDivider(color = Color(0xFFE2E8F0))
-
-                    // List of Google Accounts
-                    googleAccounts.forEach { account ->
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    showGoogleAccountSheet = false
-                                    isLoading = true
-                                    scope.launch {
-                                        delay(300)
-                                        isLoading = false
-                                        onLoginSuccess(
-                                            account.name,
-                                            account.email,
-                                            selectedRole,
-                                            selectedCity
-                                        )
-                                    }
-                                }
-                                .testTag("google_account_${account.email.replace("@", "_").replace(".", "_")}"),
-                            shape = RoundedCornerShape(12.dp),
-                            color = Color(0xFFF8FAFC),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            Brush.linearGradient(
-                                                colors = listOf(NavyPrimary, BlueCorporate)
-                                            )
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = account.initials,
-                                        color = Color.White,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = account.name,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = CharcoalNavyText
-                                    )
-                                    Text(
-                                        text = account.email,
-                                        fontSize = 12.sp,
-                                        color = SlateSecondaryText
-                                    )
-                                }
-
-                                Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = null,
-                                    tint = VerifiedGreen,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-                    }
-
-                    // Add Another Account Option
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                showCustomGoogleAccountInput = true
-                                customGoogleError = null
-                            }
-                            .testTag("use_another_google_account_button"),
-                        shape = RoundedCornerShape(12.dp),
-                        color = Color.White,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFCBD5E1))
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFFF1F5F9)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Default.Add,
-                                    contentDescription = null,
-                                    tint = SlateSecondaryText,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-
-                            Text(
-                                text = "Use another Google account",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = BlueCorporate
-                            )
-                        }
-                    }
-                } else {
-                    // Custom Google Account Sign-In Form
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_google_logo),
-                            contentDescription = "Google",
-                            modifier = Modifier.size(26.dp)
-                        )
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Sign in with Google",
-                                fontSize = 17.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = NavyPrimary
-                            )
-                            Text(
-                                text = "Enter any Google account to use Ren",
-                                fontSize = 12.sp,
-                                color = SlateSecondaryText
-                            )
-                        }
-                    }
-
-                    HorizontalDivider(color = Color(0xFFE2E8F0))
-
-                    OutlinedTextField(
-                        value = customGoogleName,
-                        onValueChange = {
-                            customGoogleName = it
-                            customGoogleError = null
-                        },
-                        label = { Text("Your Full Name (Optional)") },
-                        placeholder = { Text("e.g. Ragul Ordis") },
-                        leadingIcon = {
-                            Icon(Icons.Default.Person, contentDescription = null, tint = SlateSecondaryText)
-                        },
-                        singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("custom_google_name_input"),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-
-                    OutlinedTextField(
-                        value = customGoogleEmail,
-                        onValueChange = {
-                            customGoogleEmail = it
-                            customGoogleError = null
-                        },
-                        label = { Text("Google Email Address") },
-                        placeholder = { Text("e.g. ragulordis@gmail.com") },
-                        leadingIcon = {
-                            Icon(Icons.Default.Email, contentDescription = null, tint = SlateSecondaryText)
-                        },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                        singleLine = true,
-                        isError = customGoogleError != null,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("custom_google_email_input"),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-
-                    if (customGoogleError != null) {
-                        Text(
-                            text = customGoogleError ?: "",
-                            color = Color(0xFFDC2626),
-                            fontSize = 12.sp,
-                            modifier = Modifier.padding(start = 4.dp)
-                        )
-                    }
-
-                    Button(
-                        onClick = {
-                            val trimmedEmail = customGoogleEmail.trim().lowercase()
-                            if (trimmedEmail.isBlank() || !trimmedEmail.contains("@") || !trimmedEmail.contains(".")) {
-                                customGoogleError = "Please enter a valid Google email address"
-                            } else {
-                                showGoogleAccountSheet = false
-                                isLoading = true
-                                scope.launch {
-                                    delay(300)
-                                    isLoading = false
-                                    val name = customGoogleName.trim().ifBlank {
-                                        trimmedEmail.substringBefore("@").replace(".", " ")
-                                            .split(" ").filter { it.isNotBlank() }
-                                            .joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }
-                                    }
-                                    onLoginSuccess(
-                                        name,
-                                        trimmedEmail,
-                                        selectedRole,
-                                        selectedCity
-                                    )
-                                }
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                            .testTag("submit_custom_google_login"),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = NavyPrimary,
-                            contentColor = Color.White
-                        )
-                    ) {
-                        Text(
-                            text = "Sign in to Ren with Google",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
-                    }
-
-                    TextButton(
-                        onClick = {
-                            showCustomGoogleAccountInput = false
-                            customGoogleError = null
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("back_to_google_accounts")
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null,
-                            tint = BlueCorporate,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Back to account list",
-                            color = BlueCorporate,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp
-                        )
-                    }
-                }
-
-                Text(
-                    text = "To continue, Google will share your name, email address, and profile picture with Ren. See Ren Privacy Policy for details.",
-                    fontSize = 11.sp,
-                    color = Color(0xFF94A3B8),
-                    lineHeight = 15.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 8.dp)
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-            }
-        }
-    }
 }
-
-data class GoogleAccountItem(
-    val name: String,
-    val email: String,
-    val initials: String
-)

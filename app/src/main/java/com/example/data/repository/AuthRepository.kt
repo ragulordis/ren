@@ -55,13 +55,6 @@ interface AuthRepository {
         idToken: String
     ): Result<UserProfile>
 
-    suspend fun signInWithGoogleAccount(
-        email: String,
-        displayName: String,
-        photoUrl: String? = null,
-        role: UserRole = UserRole.BUYER
-    ): Result<UserProfile> = signInWithGoogle(email)
-
     suspend fun signInWithGoogleCredential(
         credential: AuthCredential
     ): Result<UserProfile>
@@ -112,7 +105,8 @@ class AuthRepositoryImpl(
     }
 
     init {
-        firebaseAuth?.let { auth ->
+        val auth = firebaseAuth
+        if (auth != null) {
             if (!isFirebaseListenerRegistered) {
                 isFirebaseListenerRegistered = true
                 auth.addAuthStateListener { currentAuth ->
@@ -134,6 +128,8 @@ class AuthRepositoryImpl(
                     }
                 }
             }
+        } else {
+            _sharedAuthState.value = AuthState.Error("FirebaseAuth service unavailable")
         }
     }
 
@@ -159,35 +155,17 @@ class AuthRepositoryImpl(
             require(email.isNotBlank()) { "Email cannot be empty" }
             require(password.isNotBlank()) { "Password cannot be empty" }
 
-            val auth = firebaseAuth
-            val profile = if (auth != null) {
-                val authResult = try {
-                    auth.signInWithEmailAndPassword(email.trim(), password).await()
-                } catch (e: FirebaseAuthInvalidCredentialsException) {
-                    throw InvalidCredentialsException(e.message ?: "Invalid email or password", e)
-                } catch (e: Exception) {
-                    throw AuthException(e.message ?: "Sign in failed", e)
-                }
-
-                val firebaseUser = authResult.user ?: throw NotAuthenticatedException("Sign-in succeeded but no user was returned")
-                fetchOrCreateUserProfile(firebaseUser)
-            } else {
-                val cleanEmail = email.trim().lowercase()
-                val uid = "user_${cleanEmail.replace("[^a-zA-Z0-9]".toRegex(), "_")}"
-                UserProfile(
-                    uid = uid,
-                    displayName = cleanEmail.substringBefore("@").replace(".", " ")
-                        .split(" ").filter { it.isNotBlank() }.joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } },
-                    email = cleanEmail,
-                    phone = "",
-                    photoUrl = "",
-                    role = UserRole.BUYER,
-                    accountStatus = "ACTIVE",
-                    verificationStatus = "VERIFIED",
-                    verificationLevel = 1
-                )
+            val auth = firebaseAuth ?: throw IllegalStateException("FirebaseAuth service unavailable")
+            val authResult = try {
+                auth.signInWithEmailAndPassword(email.trim(), password).await()
+            } catch (e: FirebaseAuthInvalidCredentialsException) {
+                throw InvalidCredentialsException(e.message ?: "Invalid email or password", e)
+            } catch (e: Exception) {
+                throw AuthException(e.message ?: "Sign in failed", e)
             }
 
+            val firebaseUser = authResult.user ?: throw NotAuthenticatedException("Sign-in succeeded but no user was returned")
+            val profile = fetchOrCreateUserProfile(firebaseUser)
             sharedUserProfile = profile
             _sharedAuthState.value = AuthState.SignedIn(profile)
             profile
@@ -205,73 +183,57 @@ class AuthRepositoryImpl(
             require(password.length >= 6) { "Password must be at least 6 characters" }
             require(displayName.isNotBlank()) { "Name cannot be empty" }
 
-            val auth = firebaseAuth
-            val profile = if (auth != null) {
-                val authResult = try {
-                    auth.createUserWithEmailAndPassword(email.trim(), password).await()
-                } catch (e: FirebaseAuthUserCollisionException) {
-                    throw UserAlreadyExistsException("An account with email $email already exists", e)
-                } catch (e: Exception) {
-                    throw AuthException(e.message ?: "Registration failed", e)
-                }
-
-                val firebaseUser = authResult.user ?: throw NotAuthenticatedException("Registration succeeded but no user was returned")
-                val uid = firebaseUser.uid
-                val initialRole = UserRole.BUYER
-
-                val db = firestore
-                if (db != null) {
-                    // 1. Write public profile document
-                    val publicProfileData = hashMapOf(
-                        "uid" to uid,
-                        "displayName" to displayName.trim(),
-                        "photoUrl" to (firebaseUser.photoUrl?.toString() ?: ""),
-                        "role" to initialRole.name,
-                        "accountStatus" to "ACTIVE",
-                        "verificationStatus" to if (firebaseUser.isEmailVerified) "VERIFIED" else "UNVERIFIED",
-                        "verificationLevel" to 0,
-                        "createdAt" to FieldValue.serverTimestamp(),
-                        "updatedAt" to FieldValue.serverTimestamp()
-                    )
-                    db.collection("users").document(uid).set(publicProfileData).await()
-
-                    // 2. Write private profile document (isolated access)
-                    val privateProfileData = hashMapOf(
-                        "email" to (firebaseUser.email ?: email.trim()),
-                        "phone" to (firebaseUser.phoneNumber ?: ""),
-                        "updatedAt" to FieldValue.serverTimestamp()
-                    )
-                    db.collection("users").document(uid)
-                        .collection("private").document("profile")
-                        .set(privateProfileData).await()
-                }
-
-                UserProfile(
-                    uid = uid,
-                    displayName = displayName.trim(),
-                    email = firebaseUser.email ?: email.trim(),
-                    phone = firebaseUser.phoneNumber ?: "",
-                    photoUrl = firebaseUser.photoUrl?.toString() ?: "",
-                    role = initialRole,
-                    accountStatus = "ACTIVE",
-                    verificationStatus = if (firebaseUser.isEmailVerified) "VERIFIED" else "UNVERIFIED",
-                    verificationLevel = 0
-                )
-            } else {
-                val cleanEmail = email.trim().lowercase()
-                val uid = "user_${cleanEmail.replace("[^a-zA-Z0-9]".toRegex(), "_")}"
-                UserProfile(
-                    uid = uid,
-                    displayName = displayName.trim(),
-                    email = cleanEmail,
-                    phone = "",
-                    photoUrl = "",
-                    role = role,
-                    accountStatus = "ACTIVE",
-                    verificationStatus = "VERIFIED",
-                    verificationLevel = 1
-                )
+            val auth = firebaseAuth ?: throw IllegalStateException("FirebaseAuth service unavailable")
+            val authResult = try {
+                auth.createUserWithEmailAndPassword(email.trim(), password).await()
+            } catch (e: FirebaseAuthUserCollisionException) {
+                throw UserAlreadyExistsException("An account with email $email already exists", e)
+            } catch (e: Exception) {
+                throw AuthException(e.message ?: "Registration failed", e)
             }
+
+            val firebaseUser = authResult.user ?: throw NotAuthenticatedException("Registration succeeded but no user was returned")
+            val uid = firebaseUser.uid
+            val initialRole = UserRole.BUYER
+
+            val db = firestore
+            if (db != null) {
+                // 1. Write public profile document
+                val publicProfileData = hashMapOf(
+                    "uid" to uid,
+                    "displayName" to displayName.trim(),
+                    "photoUrl" to (firebaseUser.photoUrl?.toString() ?: ""),
+                    "role" to initialRole.name,
+                    "accountStatus" to "ACTIVE",
+                    "verificationStatus" to if (firebaseUser.isEmailVerified) "VERIFIED" else "UNVERIFIED",
+                    "verificationLevel" to 0,
+                    "createdAt" to FieldValue.serverTimestamp(),
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+                db.collection("users").document(uid).set(publicProfileData).await()
+
+                // 2. Write private profile document (isolated access)
+                val privateProfileData = hashMapOf(
+                    "email" to (firebaseUser.email ?: email.trim()),
+                    "phone" to (firebaseUser.phoneNumber ?: ""),
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+                db.collection("users").document(uid)
+                    .collection("private").document("profile")
+                    .set(privateProfileData).await()
+            }
+
+            val profile = UserProfile(
+                uid = uid,
+                displayName = displayName.trim(),
+                email = firebaseUser.email ?: email.trim(),
+                phone = firebaseUser.phoneNumber ?: "",
+                photoUrl = firebaseUser.photoUrl?.toString() ?: "",
+                role = initialRole,
+                accountStatus = "ACTIVE",
+                verificationStatus = if (firebaseUser.isEmailVerified) "VERIFIED" else "UNVERIFIED",
+                verificationLevel = 0
+            )
 
             sharedUserProfile = profile
             _sharedAuthState.value = AuthState.SignedIn(profile)
@@ -284,76 +246,9 @@ class AuthRepositoryImpl(
     ): Result<UserProfile> = withContext(Dispatchers.IO) {
         runCatching {
             require(idToken.isNotBlank()) { "Google ID Token cannot be empty" }
-            val auth = firebaseAuth
-            if (auth != null) {
-                val credential = GoogleAuthProvider.getCredential(idToken, null)
-                signInWithGoogleCredential(credential).getOrThrow()
-            } else {
-                val fallbackEmail = if (idToken.contains("@")) idToken else "user@gmail.com"
-                signInWithGoogleAccount(fallbackEmail, "Google User").getOrThrow()
-            }
-        }
-    }
-
-    override suspend fun signInWithGoogleAccount(
-        email: String,
-        displayName: String,
-        photoUrl: String?,
-        role: UserRole
-    ): Result<UserProfile> = withContext(Dispatchers.IO) {
-        runCatching {
-            require(email.isNotBlank() && email.contains("@")) { "Please enter a valid Google email" }
-            val cleanEmail = email.trim().lowercase()
-            val cleanName = displayName.trim().ifBlank {
-                cleanEmail.substringBefore("@").replace(".", " ")
-                    .split(" ").filter { it.isNotBlank() }
-                    .joinToString(" ") { part -> part.replaceFirstChar { it.uppercase() } }
-            }
-
-            val uid = "google_${cleanEmail.replace("[^a-zA-Z0-9]".toRegex(), "_")}"
-            val profile = UserProfile(
-                uid = uid,
-                displayName = cleanName,
-                email = cleanEmail,
-                phone = "",
-                photoUrl = photoUrl ?: "",
-                role = role,
-                accountStatus = "ACTIVE",
-                verificationStatus = "VERIFIED",
-                verificationLevel = 1,
-                createdAt = System.currentTimeMillis()
-            )
-
-            // If Firestore is available, save/sync profile
-            val db = firestore
-            if (db != null) {
-                runCatching {
-                    val publicProfileData = hashMapOf(
-                        "uid" to uid,
-                        "displayName" to cleanName,
-                        "photoUrl" to (photoUrl ?: ""),
-                        "role" to role.name,
-                        "accountStatus" to "ACTIVE",
-                        "verificationStatus" to "VERIFIED",
-                        "verificationLevel" to 1,
-                        "updatedAt" to FieldValue.serverTimestamp()
-                    )
-                    db.collection("users").document(uid).set(publicProfileData, SetOptions.merge()).await()
-
-                    val privateProfileData = hashMapOf(
-                        "email" to cleanEmail,
-                        "phone" to "",
-                        "updatedAt" to FieldValue.serverTimestamp()
-                    )
-                    db.collection("users").document(uid)
-                        .collection("private").document("profile")
-                        .set(privateProfileData, SetOptions.merge()).await()
-                }
-            }
-
-            sharedUserProfile = profile
-            _sharedAuthState.value = AuthState.SignedIn(profile)
-            profile
+            val auth = firebaseAuth ?: throw IllegalStateException("FirebaseAuth service unavailable")
+            val credential = GoogleAuthProvider.getCredential(idToken, null)
+            signInWithGoogleCredential(credential).getOrThrow()
         }
     }
 
@@ -361,7 +256,7 @@ class AuthRepositoryImpl(
         credential: AuthCredential
     ): Result<UserProfile> = withContext(Dispatchers.IO) {
         runCatching {
-            val auth = firebaseAuth ?: throw IllegalStateException("FirebaseAuth unavailable")
+            val auth = firebaseAuth ?: throw IllegalStateException("FirebaseAuth service unavailable")
             val authResult = auth.signInWithCredential(credential).await()
             val firebaseUser = authResult.user ?: throw NotAuthenticatedException("Google Sign-In returned no user")
             val profile = fetchOrCreateUserProfile(firebaseUser)
@@ -376,10 +271,8 @@ class AuthRepositoryImpl(
     ): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
             require(email.isNotBlank()) { "Email cannot be empty" }
-            val auth = firebaseAuth
-            if (auth != null) {
-                auth.sendPasswordResetEmail(email.trim()).await()
-            }
+            val auth = firebaseAuth ?: throw IllegalStateException("FirebaseAuth service unavailable")
+            auth.sendPasswordResetEmail(email.trim()).await()
             Unit
         }
     }
