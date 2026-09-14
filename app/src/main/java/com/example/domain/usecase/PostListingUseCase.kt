@@ -1,9 +1,12 @@
 package com.example.domain.usecase
 
+import android.content.Context
+import android.net.Uri
 import com.example.data.model.ListingType
 import com.example.data.model.Property
 import com.example.data.model.PropertyCategory
 import com.example.data.model.SellingSpeed
+import com.example.data.remote.StorageService
 import com.example.data.repository.AuthRepository
 import com.example.data.repository.PropertyRepository
 
@@ -21,17 +24,21 @@ data class PostListingParams(
     val areaSqFt: Int,
     val features: List<String>,
     val isPrivate: Boolean = false,
-    val customImageResName: String? = null
+    val customImageResName: String? = null,
+    val imageUri: Uri? = null
 )
 
 /**
  * UseCase to validate and publish a new property listing.
  * Enforces production security: verification level starts at 0, no client self-approval,
  * metrics initialized to 0, owner bound to authenticated user.
+ * Automatically uploads photo to Firebase Storage if an imageUri is provided.
  */
 class PostListingUseCase(
     private val repository: PropertyRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val storageService: StorageService? = null,
+    private val context: Context? = null
 ) {
     suspend operator fun invoke(params: PostListingParams): Result<Property> = runCatching {
         require(params.title.isNotBlank()) { "Title cannot be empty" }
@@ -63,8 +70,19 @@ class PostListingUseCase(
             else -> "prop_house_kottakuppam"
         }
 
+        val propId = "prop-${System.currentTimeMillis()}"
+
+        // Upload custom photo if URI provided and storage service available
+        val uploadedImageUrl = if (params.imageUri != null && storageService != null && context != null) {
+            storageService.uploadPropertyPhoto(propId, params.imageUri, context).getOrNull()
+        } else null
+
+        val finalImageName = uploadedImageUrl
+            ?: params.customImageResName
+            ?: fallbackImage
+
         val newProperty = Property(
-            id = "prop-${System.currentTimeMillis()}",
+            id = propId,
             ownerId = uid,
             title = params.title.trim(),
             description = params.description.trim(),
@@ -83,7 +101,7 @@ class PostListingUseCase(
             areaSqFt = params.areaSqFt,
             urgencyScore = urgencyScore,
             verificationLevel = 0, // Unverified draft/pending review - client NEVER self-approves!
-            imageResName = params.customImageResName ?: fallbackImage,
+            imageResName = finalImageName,
             featuresList = params.features,
             ownerName = currentUser?.displayName?.ifBlank { "Property Owner" } ?: "Property Owner",
             ownerPhone = currentUser?.phone?.ifBlank { "" } ?: "",

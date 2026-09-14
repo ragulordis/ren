@@ -205,8 +205,8 @@ fun PropertyDetailSheet(
                     .fillMaxWidth()
                     .height(260.dp)
             ) {
-                Image(
-                    painter = painterResource(id = getDrawableResForName(property.imageResName)),
+                PropertyImage(
+                    imageSource = property.imageResName,
                     contentDescription = property.title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier

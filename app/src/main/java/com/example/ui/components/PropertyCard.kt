@@ -130,8 +130,8 @@ fun PropertyCard(
                     .fillMaxWidth()
                     .height(185.dp)
             ) {
-                Image(
-                    painter = painterResource(id = getDrawableResForName(property.imageResName)),
+                PropertyImage(
+                    imageSource = property.imageResName,
                     contentDescription = property.title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
@@ -498,8 +498,8 @@ fun UrgentPropertyCard(
                         .clip(RoundedCornerShape(10.dp))
                         .border(1.dp, Color(0xFF475569), RoundedCornerShape(10.dp))
                 ) {
-                    Image(
-                        painter = painterResource(id = getDrawableResForName(property.imageResName)),
+                    PropertyImage(
+                        imageSource = property.imageResName,
                         contentDescription = property.title,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()

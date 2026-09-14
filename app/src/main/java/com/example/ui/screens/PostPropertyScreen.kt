@@ -1,5 +1,11 @@
 package com.example.ui.screens
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.PhotoCamera
+import coil.compose.AsyncImage
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -77,7 +83,7 @@ fun PostPropertyScreen(
     modifier: Modifier = Modifier
 ) {
     PostPropertyScreen(
-        onPostProperty = { title, desc, cat, type, price, market, loc, beds, baths, sqft, speed, feat, priv ->
+        onPostProperty = { title, desc, cat, type, price, market, loc, beds, baths, sqft, speed, feat, priv, imageUri ->
             postViewModel.postNewProperty(
                 title = title,
                 description = desc,
@@ -91,7 +97,8 @@ fun PostPropertyScreen(
                 areaSqFt = sqft,
                 speed = speed,
                 features = feat,
-                isPrivate = priv
+                isPrivate = priv,
+                imageUri = imageUri
             )
         },
         modifier = modifier
@@ -104,7 +111,7 @@ fun PostPropertyScreen(
     modifier: Modifier = Modifier
 ) {
     PostPropertyScreen(
-        onPostProperty = { title, desc, cat, type, price, market, loc, beds, baths, sqft, speed, feat, priv ->
+        onPostProperty = { title, desc, cat, type, price, market, loc, beds, baths, sqft, speed, feat, priv, imageUri ->
             viewModel.postNewProperty(
                 title = title,
                 description = desc,
@@ -140,7 +147,8 @@ fun PostPropertyScreen(
         areaSqFt: Int,
         speed: SellingSpeed,
         features: List<String>,
-        isPrivate: Boolean
+        isPrivate: Boolean,
+        imageUri: Uri?
     ) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -157,6 +165,13 @@ fun PostPropertyScreen(
     var selectedSpeed by remember { mutableStateOf(SellingSpeed.FAST) }
     var protectPrivacy by remember { mutableStateOf(true) }
     var isPrivateListing by remember { mutableStateOf(false) }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        selectedImageUri = uri
+    }
 
     val availableFeatures = listOf("Covered Parking", "24/7 Water", "EB 3-Phase", "Private Garden", "Gated Security", "DTCP Approved", "Furnished")
     val selectedFeatures = remember { mutableStateOf(setOf("Covered Parking", "24/7 Water", "EB 3-Phase")) }
@@ -516,6 +531,109 @@ fun PostPropertyScreen(
             }
         }
 
+                // 4b. PROPERTY PHOTOS & CLOUD STORAGE UPLOAD
+        item {
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "ðŸ“¸ Property Photographs",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                    Text(
+                        text = "Add real property photos to build buyer trust and increase urgent match scores",
+                        fontSize = 12.sp,
+                        color = TextSecondary
+                    )
+
+                    if (selectedImageUri != null) {
+                        // Selected Photo Preview Card
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(180.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(14.dp))
+                        ) {
+                            AsyncImage(
+                                model = selectedImageUri,
+                                contentDescription = "Selected property photo",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                            )
+                            // Remove / Change button
+                            Surface(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(8.dp)
+                                    .clip(CircleShape)
+                                    .clickable { selectedImageUri = null },
+                                color = Color.Black.copy(alpha = 0.65f),
+                                shape = CircleShape
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Remove photo",
+                                    tint = Color.White,
+                                    modifier = Modifier.padding(6.dp).size(18.dp)
+                                )
+                            }
+                        }
+                    } else {
+                        // Upload Action Box
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(110.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .border(
+                                    width = 1.dp,
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                                    shape = RoundedCornerShape(14.dp)
+                                )
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.05f))
+                                .clickable { photoPickerLauncher.launch("image/*") }
+                                .padding(14.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AddPhotoAlternate,
+                                    contentDescription = "Add photo",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                                Column {
+                                    Text(
+                                        text = "Upload Property Photo",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Text(
+                                        text = "Select from Gallery or Camera â€¢ Auto uploaded to Cloud",
+                                        fontSize = 11.sp,
+                                        color = TextSecondary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // 5. FEATURES CHECKLIST
         item {
             Card(
@@ -591,7 +709,8 @@ fun PostPropertyScreen(
                         areaSqFt = areaSqFt.toIntOrNull() ?: 1200,
                         speed = selectedSpeed,
                         features = selectedFeatures.value.toList(),
-                        isPrivate = isPrivateListing
+                        isPrivate = isPrivateListing,
+                        imageUri = selectedImageUri
                     )
                 },
                 modifier = Modifier

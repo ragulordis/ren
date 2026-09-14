@@ -39,6 +39,7 @@ class PostPropertyViewModel(
         features: List<String>,
         isPrivate: Boolean = false,
         customImageResName: String? = null,
+        imageUri: android.net.Uri? = null,
         onSuccess: (Property) -> Unit = {},
         onError: (Throwable) -> Unit = {}
     ) {
@@ -58,7 +59,8 @@ class PostPropertyViewModel(
                 areaSqFt = areaSqFt,
                 features = features,
                 isPrivate = isPrivate,
-                customImageResName = customImageResName
+                customImageResName = customImageResName,
+                imageUri = imageUri
             )
             val result = postListingUseCase(params)
             _postResult.value = result

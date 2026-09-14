@@ -34,6 +34,7 @@ val databaseModule = module {
 
 val networkModule = module {
     single { FirestoreService() }
+    single { com.example.data.remote.StorageService() }
 }
 
 val repositoryModule = module {
@@ -43,7 +44,7 @@ val repositoryModule = module {
 
 val useCaseModule = module {
     factory { GetPropertiesUseCase(get()) }
-    factory { PostListingUseCase(get(), get()) }
+    factory { PostListingUseCase(get(), get(), get(), androidContext()) }
     factory { ScheduleVisitUseCase(get(), get()) }
     factory { SmartMatchUseCase(get()) }
     factory { ToggleSavePropertyUseCase(get()) }

@@ -660,8 +660,8 @@ fun ExploreScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             // Property Thumbnail
-                            Image(
-                                painter = painterResource(id = getDrawableResForName(prop.imageResName)),
+                            com.example.ui.components.PropertyImage(
+                                imageSource = prop.imageResName,
                                 contentDescription = prop.title,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
