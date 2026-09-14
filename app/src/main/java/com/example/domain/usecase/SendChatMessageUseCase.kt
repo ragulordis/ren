@@ -13,8 +13,29 @@ class SendChatMessageUseCase(
     private val repository: PropertyRepository,
     private val authRepository: AuthRepository
 ) {
-    fun getMessages(propertyId: String): Flow<List<ChatMessage>> =
-        repository.getChatMessagesForProperty(propertyId)
+    fun getMessages(propertyId: String): Flow<List<ChatMessage>> {
+        // Stream from Firestore, caching to local Room, while emitting local Room messages
+        return kotlinx.coroutines.flow.channelFlow {
+            // First launch a collector for remote messages to persist them to Room
+            val remoteJob = kotlinx.coroutines.launch {
+                repository.streamChatMessages(propertyId).collect { remoteMsgs ->
+                    val myId = authRepository.currentUserId()
+                    val myName = authRepository.currentUser()?.displayName
+                    remoteMsgs.forEach { remoteMsg ->
+                        val isMine = remoteMsg.isFromMe || (myId != null && remoteMsg.senderName == myName)
+                        repository.insertChatMessage(remoteMsg.copy(isFromMe = isMine))
+                    }
+                }
+            }
+
+            // Emit from local Room as single source of truth
+            repository.getChatMessagesForProperty(propertyId).collect { localMsgs ->
+                send(localMsgs)
+            }
+
+            remoteJob.cancel()
+        }
+    }
 
     suspend fun sendMessage(propertyId: String, text: String): Result<ChatMessage> = runCatching {
         require(text.isNotBlank()) { "Message text cannot be blank" }

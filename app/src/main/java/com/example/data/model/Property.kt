@@ -14,6 +14,8 @@ data class PropertyVisit(
     val propertyId: String,
     val propertyTitle: String,
     val location: String,
+    val buyerId: String = "",    // Firebase Auth UID of the buyer — required by Firestore rules
+    val sellerId: String = "",   // ownerId of the property — required by Firestore rules
     val buyerName: String,
     val date: String,
     val timeSlot: String,

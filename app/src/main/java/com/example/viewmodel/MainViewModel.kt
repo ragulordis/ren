@@ -25,6 +25,7 @@ class MainViewModel(
     private val propertyRepository: PropertyRepository,
     private val authRepository: AuthRepository,
     private val sendChatMessageUseCase: SendChatMessageUseCase,
+    private val aiSearchUseCase: com.example.domain.usecase.AiSearchUseCase = com.example.domain.usecase.AiSearchUseCase(),
     private val scheduleVisitUseCase: ScheduleVisitUseCase = ScheduleVisitUseCase(propertyRepository, authRepository)
 ) : ViewModel() {
 
@@ -247,34 +248,14 @@ class MainViewModel(
 
     fun runAiNaturalSearch(query: String) {
         _aiQuery.value = query
+        _aiExplanation.value = "Analyzing properties with Ren AI assistant..."
         val props = allProperties.value
-        val lower = query.lowercase()
 
-        val matched = props.filter { p ->
-            var score = 0
-            if ((lower.contains("bengaluru") || lower.contains("bangalore")) && p.location.contains("Bengaluru", ignoreCase = true)) score += 40
-            if (lower.contains("chennai") && p.location.contains("Chennai", ignoreCase = true)) score += 40
-            if (lower.contains("mumbai") && p.location.contains("Mumbai", ignoreCase = true)) score += 40
-            if ((lower.contains("delhi") || lower.contains("gurugram") || lower.contains("noida")) && p.location.contains("Delhi", ignoreCase = true)) score += 40
-            if (lower.contains("hyderabad") && p.location.contains("Hyderabad", ignoreCase = true)) score += 40
-            if (lower.contains("pune") && p.location.contains("Pune", ignoreCase = true)) score += 40
-            if ((lower.contains("kochi") || lower.contains("cochin")) && p.location.contains("Kochi", ignoreCase = true)) score += 40
-            if (lower.contains("goa") && p.location.contains("Goa", ignoreCase = true)) score += 40
-            if (lower.contains("auroville") && p.location.contains("Auroville", ignoreCase = true)) score += 40
-            if (lower.contains("kottakuppam") && p.location.contains("Kottakuppam", ignoreCase = true)) score += 40
-            if ((lower.contains("pondy") || lower.contains("pondicherry")) && p.location.contains("Pondicherry", ignoreCase = true)) score += 40
-
-            if (lower.contains("rent") && p.listingType == ListingType.RENT) score += 30
-            if (lower.contains("lease") && p.listingType == ListingType.LEASE) score += 30
-            if ((lower.contains("land") || lower.contains("plot")) && p.category == PropertyCategory.LAND) score += 30
-            if ((lower.contains("house") || lower.contains("villa")) && (p.propertyType.contains("House") || p.propertyType.contains("Villa"))) score += 30
-            if (lower.contains("urgent") && (p.sellingSpeed == SellingSpeed.URGENT || p.sellingSpeed == SellingSpeed.FAST)) score += 30
-
-            score > 25
-        }.ifEmpty { props.take(4) }
-
-        _aiResults.value = matched
-        _aiExplanation.value = "Found ${matched.size} properties matching your criteria across verified Indian locations."
+        viewModelScope.launch {
+            val result = aiSearchUseCase(query, props)
+            _aiResults.value = result.matchedProperties
+            _aiExplanation.value = result.explanation
+        }
     }
 
     fun getMatchesForProperty(property: Property): List<BuyerMatch> {

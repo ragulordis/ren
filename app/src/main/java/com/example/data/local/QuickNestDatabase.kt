@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
         PropertyReportEntity::class,
         SearchAlertEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class QuickNestDatabase : RoomDatabase() {
@@ -34,7 +34,7 @@ abstract class QuickNestDatabase : RoomDatabase() {
                     QuickNestDatabase::class.java,
                     "quicknest_db"
                 )
-                    .addMigrations(MIGRATION_3_4)
+                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5)
                     .build()
                 INSTANCE = instance
                 instance

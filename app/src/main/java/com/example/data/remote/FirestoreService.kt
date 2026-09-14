@@ -229,7 +229,9 @@ class FirestoreService {
     }
 
     /**
-     * Save a scheduled visit to Firestore
+     * Save a scheduled visit to Firestore.
+     * Includes buyerId (auth UID) and sellerId (property ownerId) required by Firestore security rules:
+     *   allow write: if request.auth.uid == request.resource.data.buyerId;
      */
     suspend fun saveVisit(visit: PropertyVisit): Result<Unit> = runCatching {
         val db = firestore ?: return@runCatching
@@ -238,6 +240,8 @@ class FirestoreService {
             "propertyId" to visit.propertyId,
             "propertyTitle" to visit.propertyTitle,
             "location" to visit.location,
+            "buyerId" to visit.buyerId,
+            "sellerId" to visit.sellerId,
             "buyerName" to visit.buyerName,
             "date" to visit.date,
             "timeSlot" to visit.timeSlot,
@@ -245,5 +249,96 @@ class FirestoreService {
             "createdAt" to System.currentTimeMillis()
         )
         db.collection("visits").document(visit.id).set(data, SetOptions.merge()).await()
+    }
+
+    /**
+     * Sync a chat message to Firestore at /conversations/{propertyId}/messages/{msgId}.
+     * This makes messages visible across devices and to the property seller in real time.
+     */
+    suspend fun saveChatMessage(
+        propertyId: String,
+        message: com.example.data.model.ChatMessage
+    ): Result<Unit> = runCatching {
+        val db = firestore ?: return@runCatching
+        val data = hashMapOf(
+            "id" to message.id,
+            "propertyId" to propertyId,
+            "senderName" to message.senderName,
+            "message" to message.message,
+            "time" to message.time,
+            "isFromMe" to message.isFromMe,
+            "timestamp" to System.currentTimeMillis()
+        )
+        db.collection("conversations")
+            .document(propertyId)
+            .collection("messages")
+            .document(message.id)
+            .set(data, SetOptions.merge())
+            .await()
+    }
+
+    /**
+     * Submit a property report to Firestore at /reports/{reportId}.
+     * This is the only persistent backend record visible to moderators.
+     */
+    suspend fun saveReport(
+        propertyId: String,
+        propertyTitle: String,
+        reason: String,
+        details: String,
+        reportId: String
+    ): Result<Unit> = runCatching {
+        val db = firestore ?: return@runCatching
+        val data = hashMapOf(
+            "id" to reportId,
+            "propertyId" to propertyId,
+            "propertyTitle" to propertyTitle,
+            "reason" to reason,
+            "details" to details,
+            "status" to "PENDING_REVIEW",
+            "createdAt" to System.currentTimeMillis()
+        )
+        db.collection("reports").document(reportId).set(data, SetOptions.merge()).await()
+    }
+
+    /**
+     * Stream real-time chat messages from Firestore for cross-device delivery.
+     * Messages are ordered by timestamp ascending so the conversation thread renders correctly.
+     */
+    fun streamChatMessages(propertyId: String): kotlinx.coroutines.flow.Flow<List<com.example.data.model.ChatMessage>> = callbackFlow {
+        val db = firestore
+        if (db == null) {
+            trySend(emptyList())
+            close()
+            return@callbackFlow
+        }
+
+        val listener = db.collection("conversations")
+            .document(propertyId)
+            .collection("messages")
+            .orderBy("timestamp", Query.Direction.ASCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.w("FirestoreService", "Chat stream failed for $propertyId: ${error.message}")
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    val messages = snapshot.documents.mapNotNull { doc ->
+                        runCatching {
+                            com.example.data.model.ChatMessage(
+                                id = doc.getString("id") ?: doc.id,
+                                propertyId = doc.getString("propertyId") ?: propertyId,
+                                senderName = doc.getString("senderName") ?: "User",
+                                message = doc.getString("message") ?: "",
+                                time = doc.getString("time") ?: "Just now",
+                                isFromMe = doc.getBoolean("isFromMe") ?: false
+                            )
+                        }.getOrNull()
+                    }
+                    trySend(messages)
+                }
+            }
+
+        awaitClose { listener.remove() }
     }
 }

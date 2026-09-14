@@ -7,6 +7,8 @@ import com.example.data.repository.PropertyRepository
 
 /**
  * UseCase to schedule an on-site property inspection with authenticated buyer identity.
+ * Populates buyerId (auth UID) and sellerId (property ownerId) so that Firestore
+ * security rules can validate the write: request.auth.uid == buyerId.
  */
 class ScheduleVisitUseCase(
     private val repository: PropertyRepository,
@@ -23,6 +25,8 @@ class ScheduleVisitUseCase(
             propertyId = property.id,
             propertyTitle = property.title,
             location = property.location,
+            buyerId = user?.uid ?: "",          // Firebase Auth UID — validated by Firestore rules
+            sellerId = property.ownerId,         // Property owner — validated by Firestore rules
             buyerName = user?.displayName?.ifBlank { "Buyer" } ?: "Buyer",
             date = date,
             timeSlot = timeSlot,

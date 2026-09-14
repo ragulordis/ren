@@ -50,11 +50,12 @@ val useCaseModule = module {
     factory { FilterPropertiesUseCase() }
     factory { ObserveUserProfileUseCase(get()) }
     factory { SendChatMessageUseCase(get(), get()) }
+    factory { com.example.domain.usecase.AiSearchUseCase() }
 }
 
 val viewModelModule = module {
-    // MainViewModel: propertyRepository, authRepository, sendChatMessageUseCase (scheduleVisitUseCase defaulted)
-    viewModel { MainViewModel(get(), get(), get()) }
+    // MainViewModel: propertyRepository, authRepository, sendChatMessageUseCase, aiSearchUseCase
+    viewModel { MainViewModel(get(), get(), get(), get()) }
     // AuthViewModel: application + authRepository
     viewModel { AuthViewModel(androidApplication(), get()) }
     // HomeViewModel: propertyRepository, getPropertiesUseCase (rest defaulted from repository)

@@ -31,6 +31,7 @@ interface PropertyRepository {
     suspend fun updateVisitStatus(visitId: String, status: String)
     suspend fun deleteVisit(visitId: String)
     fun getChatMessagesForProperty(propertyId: String): Flow<List<ChatMessage>>
+    fun streamChatMessages(propertyId: String): Flow<List<ChatMessage>>
     suspend fun insertChatMessage(message: ChatMessage)
     suspend fun reportProperty(propertyId: String, propertyTitle: String, reason: String, details: String)
     suspend fun updatePropertyStatus(propertyId: String, status: String)
@@ -124,19 +125,26 @@ class PropertyRepositoryImpl(
         }
     }
 
+    override fun streamChatMessages(propertyId: String): Flow<List<ChatMessage>> {
+        return firestoreService.streamChatMessages(propertyId)
+    }
+
     override suspend fun insertChatMessage(message: ChatMessage) {
         dao.insertMessage(com.example.data.local.ChatMessageEntity.fromDomain(message))
+        firestoreService.saveChatMessage(message.propertyId, message)
     }
 
     override suspend fun reportProperty(propertyId: String, propertyTitle: String, reason: String, details: String) {
+        val reportId = "rep-${System.currentTimeMillis()}"
         val report = com.example.data.local.PropertyReportEntity(
-            id = "rep-${System.currentTimeMillis()}",
+            id = reportId,
             propertyId = propertyId,
             propertyTitle = propertyTitle,
             reason = reason,
             details = details
         )
         dao.insertReport(report)
+        firestoreService.saveReport(propertyId, propertyTitle, reason, details, reportId)
     }
 
     override suspend fun updatePropertyStatus(propertyId: String, status: String) {
