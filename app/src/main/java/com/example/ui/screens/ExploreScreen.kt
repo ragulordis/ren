@@ -90,7 +90,8 @@ import com.example.ui.theme.SurfaceIvoryTint
 import com.example.ui.theme.CharcoalNavyText
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
-import com.example.ui.theme.UrgencyFlame
+import com.example.viewmodel.ExploreViewModel
+import com.example.viewmodel.MainViewModel
 import com.example.viewmodel.QuickNestViewModel
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
@@ -106,6 +107,42 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun ExploreScreen(
+    exploreViewModel: ExploreViewModel,
+    mainViewModel: MainViewModel,
+    modifier: Modifier = Modifier
+) {
+    val filteredProperties by exploreViewModel.filteredProperties.collectAsStateWithLifecycle()
+    val selectedProperty by exploreViewModel.exploreSelectedProperty.collectAsStateWithLifecycle()
+    val radiusKm by exploreViewModel.exploreRadiusKm.collectAsStateWithLifecycle()
+    val activeFiltersCount by exploreViewModel.activeFiltersCount.collectAsStateWithLifecycle()
+    val searchQuery by exploreViewModel.searchQuery.collectAsStateWithLifecycle()
+    val selectedLocation by exploreViewModel.selectedLocation.collectAsStateWithLifecycle()
+    val isLoading by exploreViewModel.isLoading.collectAsStateWithLifecycle()
+    val isRefreshing by exploreViewModel.isRefreshing.collectAsStateWithLifecycle()
+    val isSyncingCloud by exploreViewModel.isSyncingCloud.collectAsStateWithLifecycle()
+
+    ExploreScreen(
+        filteredProperties = filteredProperties,
+        selectedProperty = selectedProperty,
+        radiusKm = radiusKm,
+        activeFiltersCount = activeFiltersCount,
+        searchQuery = searchQuery,
+        selectedLocation = selectedLocation,
+        isLoading = isLoading,
+        isRefreshing = isRefreshing,
+        isSyncingCloud = isSyncingCloud,
+        onSetExploreSelected = { exploreViewModel.setExploreSelected(it) },
+        onSetExploreRadius = { exploreViewModel.setExploreRadius(it) },
+        onOpenFilterSheet = { mainViewModel.openFilterSheet() },
+        onRefreshData = { exploreViewModel.refreshData() },
+        onOpenPropertyDetails = { mainViewModel.openPropertyDetails(it) },
+        onOpenQuickMatch = { mainViewModel.openQuickMatch(it) },
+        modifier = modifier
+    )
+}
+
+@Composable
+fun ExploreScreen(
     viewModel: QuickNestViewModel,
     modifier: Modifier = Modifier
 ) {
@@ -118,6 +155,46 @@ fun ExploreScreen(
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val isSyncingCloud by viewModel.isSyncingCloud.collectAsStateWithLifecycle()
+
+    ExploreScreen(
+        filteredProperties = filteredProperties,
+        selectedProperty = selectedProperty,
+        radiusKm = radiusKm,
+        activeFiltersCount = activeFiltersCount,
+        searchQuery = searchQuery,
+        selectedLocation = selectedLocation,
+        isLoading = isLoading,
+        isRefreshing = isRefreshing,
+        isSyncingCloud = isSyncingCloud,
+        onSetExploreSelected = { viewModel.setExploreSelected(it) },
+        onSetExploreRadius = { viewModel.setExploreRadius(it) },
+        onOpenFilterSheet = { viewModel.openFilterSheet() },
+        onRefreshData = { viewModel.refreshData() },
+        onOpenPropertyDetails = { viewModel.openPropertyDetails(it) },
+        onOpenQuickMatch = { viewModel.openQuickMatch(it) },
+        modifier = modifier
+    )
+}
+
+@Composable
+fun ExploreScreen(
+    filteredProperties: List<Property>,
+    selectedProperty: Property?,
+    radiusKm: Double,
+    activeFiltersCount: Int,
+    searchQuery: String,
+    selectedLocation: String,
+    isLoading: Boolean,
+    isRefreshing: Boolean,
+    isSyncingCloud: Boolean,
+    onSetExploreSelected: (Property?) -> Unit,
+    onSetExploreRadius: (Double) -> Unit,
+    onOpenFilterSheet: () -> Unit,
+    onRefreshData: () -> Unit,
+    onOpenPropertyDetails: (Property) -> Unit,
+    onOpenQuickMatch: (Property) -> Unit,
+    modifier: Modifier = Modifier
+) {
 
     val scope = rememberCoroutineScope()
     val mapsApiKey = remember {
@@ -178,7 +255,7 @@ fun ExploreScreen(
                     )
                 },
                 onMapClick = {
-                    viewModel.setExploreSelected(null)
+                    onSetExploreSelected(null)
                 }
             ) {
                 // Display markers for filtered properties correlating with active search results
@@ -194,7 +271,7 @@ fun ExploreScreen(
                         title = prop.title,
                         snippet = prop.formattedPrice,
                         onClick = {
-                            viewModel.setExploreSelected(prop)
+                            onSetExploreSelected(prop)
                             true
                         }
                     ) {
@@ -246,7 +323,7 @@ fun ExploreScreen(
                         .background(IvoryBackground)
                         .pointerInput(Unit) {
                             detectTapGestures {
-                                viewModel.setExploreSelected(null)
+                                onSetExploreSelected(null)
                             }
                         }
                 ) {
@@ -309,7 +386,7 @@ fun ExploreScreen(
                         modifier = Modifier
                             .align(Alignment.TopStart)
                             .padding(start = (xRatio * 320).dp, top = (yRatio * 520).dp)
-                            .clickable { viewModel.setExploreSelected(prop) }
+                            .clickable { onSetExploreSelected(prop) }
                             .testTag("radar_pin_${prop.id}")
                     ) {
                         Surface(
@@ -398,7 +475,7 @@ fun ExploreScreen(
                                 shape = RoundedCornerShape(12.dp),
                                 color = if (activeFiltersCount > 0) BlueCorporate else SurfaceWhite,
                                 border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderSubtle),
-                                modifier = Modifier.clickable { viewModel.openFilterSheet() }
+                                modifier = Modifier.clickable { onOpenFilterSheet() }
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -427,7 +504,7 @@ fun ExploreScreen(
                                 border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderSubtle),
                                 modifier = Modifier
                                     .size(32.dp)
-                                    .clickable { viewModel.refreshData() }
+                                    .clickable { onRefreshData() }
                                     .testTag("refresh_map_button")
                             ) {
                                 Icon(
@@ -574,7 +651,7 @@ fun ExploreScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { viewModel.openPropertyDetails(prop) }
+                        .clickable { onOpenPropertyDetails(prop) }
                         .testTag("explore_property_preview")
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
@@ -604,7 +681,7 @@ fun ExploreScreen(
                                 ) {
                                     SellingSpeedBadge(speed = prop.sellingSpeed)
                                     IconButton(
-                                        onClick = { viewModel.setExploreSelected(null) },
+                                        onClick = { onSetExploreSelected(null) },
                                         modifier = Modifier.size(24.dp)
                                     ) {
                                         Icon(
@@ -652,7 +729,7 @@ fun ExploreScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             OutlinedButton(
-                                onClick = { viewModel.openQuickMatch(prop) },
+                                onClick = { onOpenQuickMatch(prop) },
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(14.dp),
                                 border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
@@ -663,7 +740,7 @@ fun ExploreScreen(
                             }
 
                             Button(
-                                onClick = { viewModel.openPropertyDetails(prop) },
+                                onClick = { onOpenPropertyDetails(prop) },
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(14.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)

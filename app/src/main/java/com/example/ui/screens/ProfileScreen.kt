@@ -68,7 +68,28 @@ import com.example.ui.theme.UrgencyFlame
 import com.example.ui.theme.UrgencyFlameContainer
 import com.example.ui.theme.VerifiedGreen
 import com.example.ui.theme.VerifiedGreenContainer
+import com.example.viewmodel.MainViewModel
+import com.example.viewmodel.ProfileViewModel
 import com.example.viewmodel.QuickNestViewModel
+
+@Composable
+fun ProfileScreen(
+    profileViewModel: ProfileViewModel,
+    mainViewModel: MainViewModel,
+    modifier: Modifier = Modifier
+) {
+    val userRole by profileViewModel.userRole.collectAsStateWithLifecycle()
+    val currentUserProfile by profileViewModel.currentUserProfile.collectAsStateWithLifecycle()
+
+    ProfileScreen(
+        userRole = userRole,
+        currentUserProfile = currentUserProfile,
+        onSetUserRole = { profileViewModel.setUserRole(it) },
+        onFeedback = { mainViewModel.showFeedback(it) },
+        onLogout = { profileViewModel.logout() },
+        modifier = modifier
+    )
+}
 
 @Composable
 fun ProfileScreen(
@@ -77,6 +98,26 @@ fun ProfileScreen(
 ) {
     val userRole by viewModel.userRole.collectAsStateWithLifecycle()
     val currentUserProfile by viewModel.currentUserProfile.collectAsStateWithLifecycle()
+
+    ProfileScreen(
+        userRole = userRole,
+        currentUserProfile = currentUserProfile,
+        onSetUserRole = { viewModel.setUserRole(it) },
+        onFeedback = { viewModel.triggerFeedback(it) },
+        onLogout = { viewModel.logout() },
+        modifier = modifier
+    )
+}
+
+@Composable
+fun ProfileScreen(
+    userRole: String,
+    currentUserProfile: com.example.data.model.UserProfile?,
+    onSetUserRole: (String) -> Unit,
+    onFeedback: (String) -> Unit,
+    onLogout: () -> Unit,
+    modifier: Modifier = Modifier
+) {
 
     val roles = listOf("Individual", "Property Owner", "Broker", "Builder", "Investor")
 
@@ -224,7 +265,7 @@ fun ProfileScreen(
                                     .weight(1f)
                                     .clip(RoundedCornerShape(10.dp))
                                     .background(if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
-                                    .clickable { viewModel.setUserRole(role) }
+                                    .clickable { onSetUserRole(role) }
                                     .padding(vertical = 8.dp),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -359,21 +400,21 @@ fun ProfileScreen(
                         "Top 1 on Urgent Deals + 50 Instant Buyer SMS",
                         "₹299 / 7 Days",
                         UrgencyFlame,
-                        onClick = { viewModel.triggerFeedback("Urgent Boost selected! Top placement activated for your active listings.") }
+                        onClick = { onFeedback("Urgent Boost selected! Top placement activated for your active listings.") }
                     )
                     BoostPlanCard(
                         "⭐ Featured Listing",
                         "Highlighted with gold badge on Home & Explore",
                         "₹99 / 3 Days",
                         FastSaleAmber,
-                        onClick = { viewModel.triggerFeedback("Featured Listing activated! Gold badge will appear on your properties.") }
+                        onClick = { onFeedback("Featured Listing activated! Gold badge will appear on your properties.") }
                     )
                     BoostPlanCard(
                         "💼 Broker Pro Subscription",
                         "Unlimited listings + CRM Lead Manager + Verified Broker Tag",
                         "₹1,499 / Month",
                         MaterialTheme.colorScheme.primary,
-                        onClick = { viewModel.triggerFeedback("Broker Pro subscription requested! Relationship manager assigned.") }
+                        onClick = { onFeedback("Broker Pro subscription requested! Relationship manager assigned.") }
                     )
                 }
             }
@@ -414,7 +455,7 @@ fun ProfileScreen(
 
             // Sign Out / Switch Account Button
             androidx.compose.material3.OutlinedButton(
-                onClick = { viewModel.logout() },
+                onClick = { onLogout() },
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("sign_out_button"),

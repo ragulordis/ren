@@ -3,27 +3,46 @@ package com.example.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.model.BudgetFilter
+import com.example.data.model.ListingType
 import com.example.data.model.Property
 import com.example.data.model.PropertyCategory
+import com.example.data.model.SellingSpeed
+import com.example.data.model.SmartMatchResult
 import com.example.data.model.SortOption
+import com.example.data.model.UserPreferences
+import com.example.data.model.UserProfile
+import com.example.data.repository.AuthRepository
+import com.example.data.repository.PropertyRepository
 import com.example.domain.usecase.FilterCriteria
 import com.example.domain.usecase.FilterPropertiesUseCase
 import com.example.domain.usecase.GetPropertiesUseCase
+import com.example.domain.usecase.SmartMatchUseCase
 import com.example.domain.usecase.ToggleSavePropertyUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class ExploreViewModel(
+class HomeViewModel(
+    private val propertyRepository: PropertyRepository,
     private val getPropertiesUseCase: GetPropertiesUseCase,
     private val filterPropertiesUseCase: FilterPropertiesUseCase = FilterPropertiesUseCase(),
-    private val toggleSaveUseCase: ToggleSavePropertyUseCase
+    private val toggleSavePropertyUseCase: ToggleSavePropertyUseCase = ToggleSavePropertyUseCase(propertyRepository),
+    private val smartMatchUseCase: SmartMatchUseCase = SmartMatchUseCase(propertyRepository),
+    private val authRepository: AuthRepository? = null
 ) : ViewModel() {
 
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
+    // Filters
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
@@ -57,27 +76,39 @@ class ExploreViewModel(
     private val _maxPrice = MutableStateFlow<Long?>(null)
     val maxPrice: StateFlow<Long?> = _maxPrice.asStateFlow()
 
-    private val _showFilterSheet = MutableStateFlow(false)
-    val showFilterSheet: StateFlow<Boolean> = _showFilterSheet.asStateFlow()
+    private val _recentSearches = MutableStateFlow(
+        listOf("Pondicherry", "Kottakuppam", "East Coast Villa", "Under 50 Lakhs", "Urgent Plot")
+    )
+    val recentSearches: StateFlow<List<String>> = _recentSearches.asStateFlow()
 
-    // Map Specific State
-    private val _exploreSelectedProperty = MutableStateFlow<Property?>(null)
-    val exploreSelectedProperty: StateFlow<Property?> = _exploreSelectedProperty.asStateFlow()
+    // Smart Match State
+    private val _smartMatchPreferences = MutableStateFlow(
+        UserPreferences(
+            preferredListingType = ListingType.BUY,
+            maxBudget = 5000000L,
+            minBedrooms = 2,
+            location = "All",
+            propertyType = "All"
+        )
+    )
+    val smartMatchPreferences: StateFlow<UserPreferences> = _smartMatchPreferences.asStateFlow()
 
-    private val _exploreRadiusKm = MutableStateFlow(10.0)
-    val exploreRadiusKm: StateFlow<Double> = _exploreRadiusKm.asStateFlow()
+    private val _smartMatchResults = MutableStateFlow<List<SmartMatchResult>>(emptyList())
+    val smartMatchResults: StateFlow<List<SmartMatchResult>> = _smartMatchResults.asStateFlow()
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    private val _isSmartMatchLoading = MutableStateFlow(false)
+    val isSmartMatchLoading: StateFlow<Boolean> = _isSmartMatchLoading.asStateFlow()
 
-    private val _isRefreshing = MutableStateFlow(false)
-    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+    val currentUserProfile: StateFlow<UserProfile?> = MutableStateFlow(authRepository?.currentUser())
 
-    private val _isSyncingCloud = MutableStateFlow(false)
-    val isSyncingCloud: StateFlow<Boolean> = _isSyncingCloud.asStateFlow()
-
+    // Properties Data
     val allProperties: StateFlow<List<Property>> = getPropertiesUseCase()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val urgentProperties: StateFlow<List<Property>> = allProperties.map { list ->
+        list.filter { it.isUrgent || it.sellingSpeed == SellingSpeed.URGENT || it.urgencyScore >= 4 }
+            .sortedByDescending { it.urgencyScore }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val filteredProperties: StateFlow<List<Property>> = combine(
         allProperties,
@@ -131,38 +162,88 @@ class ExploreViewModel(
         count
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
-    fun setSearchQuery(query: String) { _searchQuery.value = query }
-    fun updateSearchQuery(query: String) { _searchQuery.value = query }
-    fun setCategory(category: PropertyCategory) { _selectedCategory.value = category }
-    fun selectCategory(category: PropertyCategory) { _selectedCategory.value = category }
-    fun setPropertyType(type: String?) { _selectedPropertyType.value = type }
-    fun selectPropertyType(type: String?) { _selectedPropertyType.value = type }
-    fun setLocation(loc: String) { _selectedLocation.value = loc }
-    fun selectLocation(loc: String) { _selectedLocation.value = loc }
-    fun setBudget(filter: BudgetFilter) { _selectedBudget.value = filter }
-    fun setBedrooms(bhk: Int) { _selectedBedrooms.value = bhk }
-    fun setSortOption(sort: SortOption) { _selectedSortOption.value = sort }
-    fun setVerifiedOnly(v: Boolean) { _verifiedOnly.value = v }
-    fun setUrgentOnly(u: Boolean) { _urgentOnly.value = u }
-    fun openFilterSheet() { _showFilterSheet.value = true }
-    fun closeFilterSheet() { _showFilterSheet.value = false }
-
-    fun setExploreSelected(property: Property?) {
-        _exploreSelectedProperty.value = property
-    }
-
-    fun setExploreRadius(radius: Double) {
-        _exploreRadiusKm.value = radius
-    }
-
-    fun refreshData() {
-        // Can trigger remote refresh or simulate loading
-    }
-
-    fun toggleSave(property: Property) {
+    init {
         viewModelScope.launch {
-            toggleSaveUseCase(property)
+            propertyRepository.ensureInitialized(seedLocalDevIfEmpty = true)
+            runSmartMatchQuery()
         }
+    }
+
+    fun runSmartMatchQuery() {
+        viewModelScope.launch {
+            _isSmartMatchLoading.value = true
+            val results = smartMatchUseCase(_smartMatchPreferences.value)
+            _smartMatchResults.value = results
+            _isSmartMatchLoading.value = false
+        }
+    }
+
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    fun saveRecentSearch(term: String) {
+        if (term.isBlank()) return
+        val current = _recentSearches.value.toMutableList()
+        current.remove(term)
+        current.add(0, term)
+        _recentSearches.value = current.take(10)
+    }
+
+    fun removeRecentSearch(term: String) {
+        val current = _recentSearches.value.toMutableList()
+        current.remove(term)
+        _recentSearches.value = current
+    }
+
+    fun clearRecentSearches() {
+        _recentSearches.value = emptyList()
+    }
+
+    fun selectCategory(category: PropertyCategory) {
+        _selectedCategory.value = category
+    }
+
+    fun selectPropertyType(type: String?) {
+        _selectedPropertyType.value = type
+    }
+
+    fun selectLocation(location: String) {
+        _selectedLocation.value = location
+    }
+
+    fun setBudgetFilter(budget: BudgetFilter) {
+        _selectedBudget.value = budget
+    }
+
+    fun setBedroomsFilter(bedrooms: Int) {
+        _selectedBedrooms.value = bedrooms
+    }
+
+    fun setSortOption(sort: SortOption) {
+        _selectedSortOption.value = sort
+    }
+
+    fun setVerifiedOnly(value: Boolean) {
+        _verifiedOnly.value = value
+    }
+
+    fun toggleUrgentOnly() {
+        _urgentOnly.value = !_urgentOnly.value
+    }
+
+    fun setUrgentOnly(value: Boolean) {
+        _urgentOnly.value = value
+    }
+
+    fun setPriceRange(min: Long?, max: Long?) {
+        _minPrice.value = min
+        _maxPrice.value = max
+    }
+
+    fun clearPriceRange() {
+        _minPrice.value = null
+        _maxPrice.value = null
     }
 
     fun resetFilters() {
@@ -177,5 +258,23 @@ class ExploreViewModel(
         _minPrice.value = null
         _maxPrice.value = null
         _searchQuery.value = ""
+    }
+
+    fun refreshData() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            propertyRepository.refreshFromFirestore()
+            _isRefreshing.value = false
+        }
+    }
+
+    fun refreshProperties() {
+        refreshData()
+    }
+
+    fun toggleSave(property: Property) {
+        viewModelScope.launch {
+            toggleSavePropertyUseCase(property)
+        }
     }
 }

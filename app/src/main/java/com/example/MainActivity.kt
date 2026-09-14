@@ -122,18 +122,23 @@ import com.example.ui.theme.CoolGlassmorphicBorder
 import com.example.ui.theme.CoolHeroGradient
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.theme.UrgencyFlame
+import com.example.viewmodel.AuthViewModel
+import com.example.viewmodel.ExploreViewModel
+import com.example.viewmodel.HomeViewModel
+import com.example.viewmodel.MainViewModel
+import com.example.viewmodel.PostPropertyViewModel
+import com.example.viewmodel.ProfileViewModel
 import com.example.viewmodel.QuickNestViewModel
+import com.example.viewmodel.SavedViewModel
+import org.koin.androidx.compose.koinViewModel
 
 class MainActivity : ComponentActivity() {
-    private val viewModel: QuickNestViewModel by viewModels()
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        viewModel.setTab(0)
         enableEdgeToEdge()
         setContent {
             MyApplicationTheme(darkTheme = false) {
-                QuickNestApp(viewModel = viewModel)
+                QuickNestApp()
             }
         }
     }
@@ -141,38 +146,47 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QuickNestApp(viewModel: QuickNestViewModel) {
+fun QuickNestApp(
+    mainViewModel: MainViewModel = koinViewModel(),
+    authViewModel: AuthViewModel = koinViewModel(),
+    homeViewModel: HomeViewModel = koinViewModel(),
+    exploreViewModel: ExploreViewModel = koinViewModel(),
+    postViewModel: PostPropertyViewModel = koinViewModel(),
+    savedViewModel: SavedViewModel = koinViewModel(),
+    profileViewModel: ProfileViewModel = koinViewModel(),
+    legacyViewModel: QuickNestViewModel = koinViewModel()
+) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    val isOnboarded by viewModel.isOnboarded.collectAsStateWithLifecycle()
-    val isLoggedIn by viewModel.isLoggedIn.collectAsStateWithLifecycle()
+    val isOnboarded by authViewModel.isOnboarded.collectAsStateWithLifecycle()
+    val isLoggedIn by authViewModel.isLoggedIn.collectAsStateWithLifecycle()
 
-    val currentTab by viewModel.currentTab.collectAsStateWithLifecycle()
-    val selectedProperty by viewModel.selectedProperty.collectAsStateWithLifecycle()
-    val contactSellerProperty by viewModel.contactSellerProperty.collectAsStateWithLifecycle()
-    val chatProperty by viewModel.chatProperty.collectAsStateWithLifecycle()
-    val visitProperty by viewModel.visitProperty.collectAsStateWithLifecycle()
-    val quickMatchProperty by viewModel.quickMatchProperty.collectAsStateWithLifecycle()
-    val showAiAssistant by viewModel.showAiAssistant.collectAsStateWithLifecycle()
-    val reportProperty by viewModel.reportProperty.collectAsStateWithLifecycle()
-    val showFilterSheet by viewModel.showFilterSheet.collectAsStateWithLifecycle()
-    val feedbackMessage by viewModel.feedbackMessage.collectAsStateWithLifecycle()
+    val currentTab by mainViewModel.currentTab.collectAsStateWithLifecycle()
+    val selectedProperty by mainViewModel.selectedProperty.collectAsStateWithLifecycle()
+    val contactSellerProperty by mainViewModel.contactSellerProperty.collectAsStateWithLifecycle()
+    val chatProperty by mainViewModel.chatProperty.collectAsStateWithLifecycle()
+    val visitProperty by mainViewModel.visitProperty.collectAsStateWithLifecycle()
+    val quickMatchProperty by mainViewModel.quickMatchProperty.collectAsStateWithLifecycle()
+    val showAiAssistant by mainViewModel.showAiAssistant.collectAsStateWithLifecycle()
+    val reportProperty by mainViewModel.reportProperty.collectAsStateWithLifecycle()
+    val showFilterSheet by mainViewModel.showFilterSheet.collectAsStateWithLifecycle()
+    val feedbackMessage by mainViewModel.feedbackMessage.collectAsStateWithLifecycle()
 
-    val selectedCategory by viewModel.selectedCategory.collectAsStateWithLifecycle()
-    val selectedPropertyType by viewModel.selectedPropertyType.collectAsStateWithLifecycle()
-    val selectedBudget by viewModel.selectedBudget.collectAsStateWithLifecycle()
-    val selectedBedrooms by viewModel.selectedBedrooms.collectAsStateWithLifecycle()
-    val selectedSortOption by viewModel.selectedSortOption.collectAsStateWithLifecycle()
-    val verifiedOnly by viewModel.verifiedOnly.collectAsStateWithLifecycle()
-    val urgentOnly by viewModel.urgentOnly.collectAsStateWithLifecycle()
+    val selectedCategory by homeViewModel.selectedCategory.collectAsStateWithLifecycle()
+    val selectedPropertyType by homeViewModel.selectedPropertyType.collectAsStateWithLifecycle()
+    val selectedBudget by homeViewModel.selectedBudget.collectAsStateWithLifecycle()
+    val selectedBedrooms by homeViewModel.selectedBedrooms.collectAsStateWithLifecycle()
+    val selectedSortOption by homeViewModel.selectedSortOption.collectAsStateWithLifecycle()
+    val verifiedOnly by homeViewModel.verifiedOnly.collectAsStateWithLifecycle()
+    val urgentOnly by homeViewModel.urgentOnly.collectAsStateWithLifecycle()
 
-    val chatMessages by viewModel.chatMessages.collectAsStateWithLifecycle()
-    val aiQuery by viewModel.aiQuery.collectAsStateWithLifecycle()
-    val aiResults by viewModel.aiResults.collectAsStateWithLifecycle()
-    val aiExplanation by viewModel.aiExplanation.collectAsStateWithLifecycle()
-    val showSmartMatchDialog by viewModel.showSmartMatchDialog.collectAsStateWithLifecycle()
+    val chatMessages by mainViewModel.chatMessages.collectAsStateWithLifecycle()
+    val aiQuery by mainViewModel.aiQuery.collectAsStateWithLifecycle()
+    val aiResults by mainViewModel.aiResults.collectAsStateWithLifecycle()
+    val aiExplanation by mainViewModel.aiExplanation.collectAsStateWithLifecycle()
+    val showSmartMatchDialog by mainViewModel.showSmartMatchDialog.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -182,13 +196,13 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
                 message = msg,
                 duration = SnackbarDuration.Short
             )
-            viewModel.clearFeedbackMessage()
+            mainViewModel.clearFeedbackMessage()
         }
     }
 
     if (!isOnboarded) {
         com.example.ui.screens.OnboardingScreen(
-            onFinishOnboarding = { viewModel.completeOnboarding() }
+            onFinishOnboarding = { authViewModel.completeOnboarding() }
         )
         return
     }
@@ -196,20 +210,20 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
     if (!isLoggedIn) {
         com.example.ui.screens.LoginScreen(
             onGoogleSignIn = { idToken, city, onError ->
-                viewModel.signInWithGoogle(idToken, city) { result ->
+                authViewModel.signInWithGoogle(idToken, city) { result ->
                     result.onFailure { onError(it.message ?: "Google Sign-In failed") }
                 }
             },
             onContinueAsGuest = {
-                viewModel.continueAsGuest()
+                authViewModel.continueAsGuest()
             },
             onEmailSignIn = { email, password, onError ->
-                viewModel.signInWithEmail(email, password) { result ->
+                authViewModel.signInWithEmail(email, password) { result ->
                     result.onFailure { onError(it.message ?: "Sign in failed") }
                 }
             },
             onEmailSignUp = { name, email, password, role, city, onError ->
-                viewModel.registerWithEmail(email, password, name, role, city) { result ->
+                authViewModel.registerWithEmail(email, password, name, role, city) { result ->
                     result.onFailure { onError(it.message ?: "Registration failed") }
                 }
             }
@@ -218,7 +232,7 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
     }
 
     BackHandler(enabled = currentTab != 0) {
-        viewModel.setTab(0)
+        mainViewModel.setTab(0)
     }
 
     LaunchedEffect(currentTab) {
@@ -319,7 +333,7 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
                 },
                 actions = {
                     IconButton(
-                        onClick = { viewModel.openSmartMatchDialog() },
+                        onClick = { mainViewModel.openSmartMatchDialog() },
                         modifier = Modifier
                             .padding(end = 3.dp)
                             .size(38.dp)
@@ -336,7 +350,7 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
                     }
 
                     IconButton(
-                        onClick = { viewModel.openAiAssistant() },
+                        onClick = { mainViewModel.openAiAssistant() },
                         modifier = Modifier
                             .padding(end = 6.dp)
                             .size(38.dp)
@@ -390,7 +404,7 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
                             selected = isSelected,
                             onClick = {
                                 if (currentTab != index) {
-                                    viewModel.setTab(index)
+                                    mainViewModel.setTab(index)
                                 }
                             },
                             icon = {
@@ -427,7 +441,7 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
             if (isHome) {
                 ExtendedFloatingActionButton(
                     onClick = {
-                        viewModel.setTab(2)
+                        mainViewModel.setTab(2)
                     },
                     icon = {
                         Icon(
@@ -463,19 +477,19 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
                 modifier = Modifier.fillMaxSize()
             ) {
                 composable<QuickNestRoute.Home> {
-                    HomeScreen(viewModel = viewModel)
+                    HomeScreen(homeViewModel = homeViewModel, mainViewModel = mainViewModel)
                 }
                 composable<QuickNestRoute.Explore> {
-                    ExploreScreen(viewModel = viewModel)
+                    ExploreScreen(exploreViewModel = exploreViewModel, mainViewModel = mainViewModel)
                 }
                 composable<QuickNestRoute.PostProperty> {
-                    PostPropertyScreen(viewModel = viewModel)
+                    PostPropertyScreen(postViewModel = postViewModel)
                 }
                 composable<QuickNestRoute.Saved> {
-                    SavedScreen(viewModel = viewModel)
+                    SavedScreen(savedViewModel = savedViewModel, mainViewModel = mainViewModel)
                 }
                 composable<QuickNestRoute.Profile> {
-                    ProfileScreen(viewModel = viewModel)
+                    ProfileScreen(profileViewModel = profileViewModel, mainViewModel = mainViewModel)
                 }
             }
         }
@@ -485,21 +499,21 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
     selectedProperty?.let { prop ->
         PropertyDetailSheet(
             property = prop,
-            onDismiss = { viewModel.closePropertyDetails() },
-            onToggleSave = { viewModel.toggleSave(prop) },
+            onDismiss = { mainViewModel.closePropertyDetails() },
+            onToggleSave = { mainViewModel.toggleSave(prop) },
             onOpenChat = {
-                viewModel.closePropertyDetails()
-                viewModel.openChat(prop)
+                mainViewModel.closePropertyDetails()
+                mainViewModel.openChat(prop)
             },
             onOpenVisitBooking = {
-                viewModel.closePropertyDetails()
-                viewModel.openVisitBooking(prop)
+                mainViewModel.closePropertyDetails()
+                mainViewModel.openVisitBooking(prop)
             },
             onOpenQuickMatch = {
-                viewModel.openQuickMatch(prop)
+                mainViewModel.openQuickMatch(prop)
             },
             onOpenReport = {
-                viewModel.openReport(prop)
+                mainViewModel.openReport(prop)
             }
         )
     }
@@ -507,8 +521,8 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
     quickMatchProperty?.let { prop ->
         QuickMatchDialog(
             property = prop,
-            matches = viewModel.getMatchesForProperty(prop),
-            onDismiss = { viewModel.closeQuickMatch() }
+            matches = mainViewModel.getMatchesForProperty(prop),
+            onDismiss = { mainViewModel.closeQuickMatch() }
         )
     }
 
@@ -516,12 +530,12 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
         ContactSellerDialog(
             property = prop,
             onStartChat = { initialMsg ->
-                viewModel.startChatFromContactSeller(prop, initialMsg)
+                mainViewModel.startChatFromContactSeller(prop, initialMsg)
             },
             onSendEmailInquiry = { subject, message, buyerEmail, buyerPhone ->
-                viewModel.sendEmailInquiry(prop, subject, message, buyerEmail, buyerPhone)
+                mainViewModel.sendEmailInquiry(prop, subject, message, buyerEmail, buyerPhone)
             },
-            onDismiss = { viewModel.closeContactSeller() }
+            onDismiss = { mainViewModel.closeContactSeller() }
         )
     }
 
@@ -529,10 +543,10 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
         ChatDialog(
             property = prop,
             messages = chatMessages,
-            onSendMessage = { viewModel.sendChatMessage(it) },
-            onDismiss = { viewModel.closeChat() },
+            onSendMessage = { mainViewModel.sendChatMessage(it) },
+            onDismiss = { mainViewModel.closeChat() },
             onOpenVisitBooking = {
-                viewModel.openVisitBooking(prop)
+                mainViewModel.openVisitBooking(prop)
             }
         )
     }
@@ -541,9 +555,9 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
         VisitBookingDialog(
             property = prop,
             onConfirm = { date, time ->
-                viewModel.confirmVisit(prop, date, time)
+                mainViewModel.confirmVisit(prop, date, time)
             },
-            onDismiss = { viewModel.closeVisitBooking() }
+            onDismiss = { mainViewModel.closeVisitBooking() }
         )
     }
 
@@ -551,9 +565,9 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
         ReportDialog(
             property = prop,
             onSubmitReport = { reason, details ->
-                viewModel.submitReport(prop, reason, details)
+                mainViewModel.submitReport(prop, reason, details)
             },
-            onDismiss = { viewModel.closeReport() }
+            onDismiss = { mainViewModel.closeReport() }
         )
     }
 
@@ -566,16 +580,16 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
             selectedSortOption = selectedSortOption,
             verifiedOnly = verifiedOnly,
             urgentOnly = urgentOnly,
-            onCategoryChange = { viewModel.selectCategory(it) },
-            onPropertyTypeChange = { viewModel.selectPropertyType(it) },
-            onBudgetChange = { viewModel.setBudgetFilter(it) },
-            onBedroomsChange = { viewModel.setBedroomsFilter(it) },
-            onSortChange = { viewModel.setSortOption(it) },
-            onVerifiedOnlyChange = { viewModel.setVerifiedOnly(it) },
-            onUrgentOnlyChange = { viewModel.setUrgentOnly(it) },
-            onResetFilters = { viewModel.resetFilters() },
-            onApply = { viewModel.closeFilterSheet() },
-            onDismiss = { viewModel.closeFilterSheet() }
+            onCategoryChange = { homeViewModel.selectCategory(it) },
+            onPropertyTypeChange = { homeViewModel.selectPropertyType(it) },
+            onBudgetChange = { homeViewModel.setBudgetFilter(it) },
+            onBedroomsChange = { homeViewModel.setBedroomsFilter(it) },
+            onSortChange = { homeViewModel.setSortOption(it) },
+            onVerifiedOnlyChange = { homeViewModel.setVerifiedOnly(it) },
+            onUrgentOnlyChange = { homeViewModel.setUrgentOnly(it) },
+            onResetFilters = { homeViewModel.resetFilters() },
+            onApply = { mainViewModel.closeFilterSheet() },
+            onDismiss = { mainViewModel.closeFilterSheet() }
         )
     }
 
@@ -584,17 +598,24 @@ fun QuickNestApp(viewModel: QuickNestViewModel) {
             query = aiQuery,
             results = aiResults,
             explanation = aiExplanation,
-            onSearch = { viewModel.runAiNaturalSearch(it) },
-            onSelectProperty = { viewModel.openPropertyDetails(it) },
-            onDismiss = { viewModel.closeAiAssistant() }
+            onSearch = { mainViewModel.runAiNaturalSearch(it) },
+            onSelectProperty = { mainViewModel.openPropertyDetails(it) },
+            onDismiss = { mainViewModel.closeAiAssistant() }
         )
     }
 
     if (showSmartMatchDialog) {
         SmartMatchDialog(
-            viewModel = viewModel,
-            onSelectProperty = { viewModel.openPropertyDetails(it) },
-            onDismiss = { viewModel.closeSmartMatchDialog() }
+            viewModel = legacyViewModel,
+            onSelectProperty = { mainViewModel.openPropertyDetails(it) },
+            onDismiss = { mainViewModel.closeSmartMatchDialog() }
         )
     }
+}
+
+// Backward-compatible overload for existing tests
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun QuickNestApp(viewModel: QuickNestViewModel) {
+    QuickNestApp(legacyViewModel = viewModel)
 }

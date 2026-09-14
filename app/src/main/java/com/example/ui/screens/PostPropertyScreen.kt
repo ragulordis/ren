@@ -68,11 +68,80 @@ import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 import com.example.ui.theme.UrgencyFlame
 import com.example.ui.theme.UrgencyFlameContainer
+import com.example.viewmodel.PostPropertyViewModel
 import com.example.viewmodel.QuickNestViewModel
 
 @Composable
 fun PostPropertyScreen(
+    postViewModel: PostPropertyViewModel,
+    modifier: Modifier = Modifier
+) {
+    PostPropertyScreen(
+        onPostProperty = { title, desc, cat, type, price, market, loc, beds, baths, sqft, speed, feat, priv ->
+            postViewModel.postNewProperty(
+                title = title,
+                description = desc,
+                category = cat,
+                propertyType = type,
+                price = price,
+                marketEstimate = market,
+                location = loc,
+                bedrooms = beds,
+                bathrooms = baths,
+                areaSqFt = sqft,
+                speed = speed,
+                features = feat,
+                isPrivate = priv
+            )
+        },
+        modifier = modifier
+    )
+}
+
+@Composable
+fun PostPropertyScreen(
     viewModel: QuickNestViewModel,
+    modifier: Modifier = Modifier
+) {
+    PostPropertyScreen(
+        onPostProperty = { title, desc, cat, type, price, market, loc, beds, baths, sqft, speed, feat, priv ->
+            viewModel.postNewProperty(
+                title = title,
+                description = desc,
+                category = cat,
+                propertyType = type,
+                price = price,
+                marketEstimate = market,
+                location = loc,
+                bedrooms = beds,
+                bathrooms = baths,
+                areaSqFt = sqft,
+                speed = speed,
+                features = feat,
+                isPrivate = priv
+            )
+        },
+        modifier = modifier
+    )
+}
+
+@Composable
+fun PostPropertyScreen(
+    onPostProperty: (
+        title: String,
+        description: String,
+        category: PropertyCategory,
+        propertyType: String,
+        price: Long,
+        marketEstimate: Long,
+        location: String,
+        bedrooms: Int,
+        bathrooms: Int,
+        areaSqFt: Int,
+        speed: SellingSpeed,
+        features: List<String>,
+        isPrivate: Boolean
+    ) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var title by remember { mutableStateOf("") }
@@ -509,9 +578,9 @@ fun PostPropertyScreen(
                     val finalTitle = title.ifBlank { "Urgent ${propertyType} in $location" }
                     val finalDesc = description.ifBlank { "Prime property with all verified amenities, direct road access, and clear title documentation." }
 
-                    viewModel.postNewProperty(
-                        title = finalTitle,
-                        description = finalDesc,
+                    onPostProperty(
+                        finalTitle,
+                        finalDesc,
                         category = selectedCategory,
                         propertyType = propertyType,
                         price = finalPrice,

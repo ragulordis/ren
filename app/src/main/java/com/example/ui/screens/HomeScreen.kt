@@ -99,7 +99,86 @@ import com.example.ui.theme.SurfaceWhite
 import com.example.ui.theme.SurfaceIvoryTint
 import com.example.ui.theme.CharcoalNavyText
 import com.example.ui.theme.SlateSecondaryText
+import com.example.viewmodel.HomeViewModel
+import com.example.viewmodel.MainViewModel
 import com.example.viewmodel.QuickNestViewModel
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeScreen(
+    homeViewModel: HomeViewModel,
+    mainViewModel: MainViewModel,
+    modifier: Modifier = Modifier
+) {
+    val filteredProperties by homeViewModel.filteredProperties.collectAsStateWithLifecycle()
+    val urgentProperties by homeViewModel.urgentProperties.collectAsStateWithLifecycle()
+    val isLoading by homeViewModel.isLoading.collectAsStateWithLifecycle()
+    val isRefreshing by homeViewModel.isRefreshing.collectAsStateWithLifecycle()
+    val searchQuery by homeViewModel.searchQuery.collectAsStateWithLifecycle()
+    val selectedCategory by homeViewModel.selectedCategory.collectAsStateWithLifecycle()
+    val selectedPropertyType by homeViewModel.selectedPropertyType.collectAsStateWithLifecycle()
+    val selectedLocation by homeViewModel.selectedLocation.collectAsStateWithLifecycle()
+    val urgentOnly by homeViewModel.urgentOnly.collectAsStateWithLifecycle()
+    val activeFiltersCount by homeViewModel.activeFiltersCount.collectAsStateWithLifecycle()
+    val selectedBudget by homeViewModel.selectedBudget.collectAsStateWithLifecycle()
+    val selectedBedrooms by homeViewModel.selectedBedrooms.collectAsStateWithLifecycle()
+    val verifiedOnly by homeViewModel.verifiedOnly.collectAsStateWithLifecycle()
+    val minPrice by homeViewModel.minPrice.collectAsStateWithLifecycle()
+    val maxPrice by homeViewModel.maxPrice.collectAsStateWithLifecycle()
+    val recentSearches by homeViewModel.recentSearches.collectAsStateWithLifecycle()
+    val smartMatchResults by homeViewModel.smartMatchResults.collectAsStateWithLifecycle()
+    val smartMatchPreferences by homeViewModel.smartMatchPreferences.collectAsStateWithLifecycle()
+    val isSmartMatchLoading by homeViewModel.isSmartMatchLoading.collectAsStateWithLifecycle()
+    val currentUserProfile by homeViewModel.currentUserProfile.collectAsStateWithLifecycle()
+
+    HomeScreenContent(
+        filteredProperties = filteredProperties,
+        urgentProperties = urgentProperties,
+        isLoading = isLoading,
+        isRefreshing = isRefreshing,
+        searchQuery = searchQuery,
+        selectedCategory = selectedCategory,
+        selectedPropertyType = selectedPropertyType,
+        selectedLocation = selectedLocation,
+        urgentOnly = urgentOnly,
+        activeFiltersCount = activeFiltersCount,
+        selectedBudget = selectedBudget,
+        selectedBedrooms = selectedBedrooms,
+        verifiedOnly = verifiedOnly,
+        minPrice = minPrice,
+        maxPrice = maxPrice,
+        recentSearches = recentSearches,
+        smartMatchResults = smartMatchResults,
+        smartMatchPreferences = smartMatchPreferences,
+        isSmartMatchLoading = isSmartMatchLoading,
+        currentUserProfile = currentUserProfile,
+        onSelectLocation = { homeViewModel.selectLocation(it) },
+        onRefresh = { homeViewModel.refreshProperties() },
+        onSearchQueryChange = { homeViewModel.updateSearchQuery(it) },
+        onPriceRangeChange = { min, max -> homeViewModel.setPriceRange(min, max) },
+        onOpenFilterSheet = { mainViewModel.openFilterSheet() },
+        onSearchSubmitted = { homeViewModel.saveRecentSearch(it) },
+        onSelectPropertyType = { homeViewModel.selectPropertyType(it) },
+        onClearPriceRange = { homeViewModel.clearPriceRange() },
+        onSelectCategory = { homeViewModel.selectCategory(it) },
+        onSetBudgetFilter = { homeViewModel.setBudgetFilter(it) },
+        onSetBedroomsFilter = { homeViewModel.setBedroomsFilter(it) },
+        onSetUrgentOnly = { homeViewModel.setUrgentOnly(it) },
+        onSetVerifiedOnly = { homeViewModel.setVerifiedOnly(it) },
+        onResetFilters = { homeViewModel.resetFilters() },
+        onOpenAiAssistant = { mainViewModel.openAiAssistant() },
+        onOpenSmartMatchDialog = { mainViewModel.openSmartMatchDialog() },
+        onOpenPropertyDetails = { mainViewModel.openPropertyDetails(it) },
+        onToggleSave = { homeViewModel.toggleSave(it) },
+        onContactSeller = { mainViewModel.openContactSeller(it) },
+        onBookVisit = { mainViewModel.openVisitBooking(it) },
+        onToggleUrgentOnly = { homeViewModel.toggleUrgentOnly() },
+        onRemoveRecentSearch = { homeViewModel.removeRecentSearch(it) },
+        onClearRecentSearches = { homeViewModel.clearRecentSearches() },
+        onNavigateToExplore = { mainViewModel.setTab(1) },
+        modifier = modifier
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -128,6 +207,105 @@ fun HomeScreen(
     val isSmartMatchLoading by viewModel.isSmartMatchLoading.collectAsStateWithLifecycle()
     val currentUserProfile by viewModel.currentUserProfile.collectAsStateWithLifecycle()
 
+    HomeScreenContent(
+        filteredProperties = filteredProperties,
+        urgentProperties = urgentProperties,
+        isLoading = isLoading,
+        isRefreshing = isRefreshing,
+        searchQuery = searchQuery,
+        selectedCategory = selectedCategory,
+        selectedPropertyType = selectedPropertyType,
+        selectedLocation = selectedLocation,
+        urgentOnly = urgentOnly,
+        activeFiltersCount = activeFiltersCount,
+        selectedBudget = selectedBudget,
+        selectedBedrooms = selectedBedrooms,
+        verifiedOnly = verifiedOnly,
+        minPrice = minPrice,
+        maxPrice = maxPrice,
+        recentSearches = recentSearches,
+        smartMatchResults = smartMatchResults,
+        smartMatchPreferences = smartMatchPreferences,
+        isSmartMatchLoading = isSmartMatchLoading,
+        currentUserProfile = currentUserProfile,
+        onSelectLocation = { onSelectLocation(it) },
+        onRefresh = { onRefresh() },
+        onSearchQueryChange = { onSearchQueryChange(it) },
+        onPriceRangeChange = { min, max -> onPriceRangeChange(min, max) },
+        onOpenFilterSheet = { onOpenFilterSheet() },
+        onSearchSubmitted = { viewModel.saveRecentSearch(it) },
+        onSelectPropertyType = { viewModel.selectPropertyType(it) },
+        onClearPriceRange = { onClearPriceRange() },
+        onSelectCategory = { viewModel.selectCategory(it) },
+        onSetBudgetFilter = { viewModel.setBudgetFilter(it) },
+        onSetBedroomsFilter = { viewModel.setBedroomsFilter(it) },
+        onSetUrgentOnly = { viewModel.setUrgentOnly(it) },
+        onSetVerifiedOnly = { viewModel.setVerifiedOnly(it) },
+        onResetFilters = { onResetFilters() },
+        onOpenAiAssistant = { onOpenAiAssistant() },
+        onOpenSmartMatchDialog = { onOpenSmartMatchDialog() },
+        onOpenPropertyDetails = { viewModel.openPropertyDetails(it) },
+        onToggleSave = { viewModel.toggleSave(it) },
+        onContactSeller = { viewModel.openContactSeller(it) },
+        onBookVisit = { viewModel.openVisitBooking(it) },
+        onToggleUrgentOnly = { onToggleUrgentOnly() },
+        onRemoveRecentSearch = { viewModel.removeRecentSearch(it) },
+        onClearRecentSearches = { onClearRecentSearches() },
+        onNavigateToExplore = { onNavigateToExplore() },
+        modifier = modifier
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HomeScreenContent(
+    filteredProperties: List<Property>,
+    urgentProperties: List<Property>,
+    isLoading: Boolean,
+    isRefreshing: Boolean,
+    searchQuery: String,
+    selectedCategory: PropertyCategory,
+    selectedPropertyType: String?,
+    selectedLocation: String,
+    urgentOnly: Boolean,
+    activeFiltersCount: Int,
+    selectedBudget: com.example.data.model.BudgetFilter,
+    selectedBedrooms: Int,
+    verifiedOnly: Boolean,
+    minPrice: Long?,
+    maxPrice: Long?,
+    recentSearches: List<String>,
+    smartMatchResults: List<com.example.data.model.SmartMatchResult>,
+    smartMatchPreferences: com.example.data.model.UserPreferences,
+    isSmartMatchLoading: Boolean,
+    currentUserProfile: com.example.data.model.UserProfile?,
+    onSelectLocation: (String) -> Unit,
+    onRefresh: () -> Unit,
+    onSearchQueryChange: (String) -> Unit,
+    onPriceRangeChange: (Long?, Long?) -> Unit,
+    onOpenFilterSheet: () -> Unit,
+    onSearchSubmitted: (String) -> Unit,
+    onSelectPropertyType: (String?) -> Unit,
+    onClearPriceRange: () -> Unit,
+    onSelectCategory: (PropertyCategory) -> Unit,
+    onSetBudgetFilter: (com.example.data.model.BudgetFilter) -> Unit,
+    onSetBedroomsFilter: (Int) -> Unit,
+    onSetUrgentOnly: (Boolean) -> Unit,
+    onSetVerifiedOnly: (Boolean) -> Unit,
+    onResetFilters: () -> Unit,
+    onOpenAiAssistant: () -> Unit,
+    onOpenSmartMatchDialog: () -> Unit,
+    onOpenPropertyDetails: (Property) -> Unit,
+    onToggleSave: (Property) -> Unit,
+    onContactSeller: (Property) -> Unit,
+    onBookVisit: (Property) -> Unit,
+    onToggleUrgentOnly: () -> Unit,
+    onRemoveRecentSearch: (String) -> Unit,
+    onClearRecentSearches: () -> Unit,
+    onNavigateToExplore: () -> Unit,
+    modifier: Modifier = Modifier
+)
+
     var showLocationPicker by remember { mutableStateOf(false) }
     val locationsList = listOf(
         "All Locations", "Chennai", "Bengaluru", "Mumbai", "Delhi NCR",
@@ -138,14 +316,14 @@ fun HomeScreen(
     if (showLocationPicker) {
         com.example.ui.components.IndiaLocationPickerDialog(
             selectedLocation = selectedLocation,
-            onLocationSelected = { viewModel.selectLocation(it) },
+            onLocationSelected = { onSelectLocation(it) },
             onDismissRequest = { showLocationPicker = false }
         )
     }
 
     PullToRefreshBox(
         isRefreshing = isRefreshing,
-        onRefresh = { viewModel.refreshProperties() },
+        onRefresh = { onRefresh() },
         modifier = modifier
             .fillMaxSize()
             .testTag("home_screen_swipe_refresh")
@@ -238,16 +416,16 @@ fun HomeScreen(
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 PropertySearchBar(
                     searchQuery = searchQuery,
-                    onSearchQueryChange = { viewModel.updateSearchQuery(it) },
+                    onSearchQueryChange = { onSearchQueryChange(it) },
                     selectedLocation = selectedLocation,
-                    onLocationChange = { viewModel.selectLocation(it) },
+                    onLocationChange = { onSelectLocation(it) },
                     minPrice = minPrice,
                     maxPrice = maxPrice,
-                    onPriceRangeChange = { min, max -> viewModel.setPriceRange(min, max) },
+                    onPriceRangeChange = { min, max -> onPriceRangeChange(min, max) },
                     availableLocations = locationsList,
-                    onOpenFilterSheet = { viewModel.openFilterSheet() },
+                    onOpenFilterSheet = { onOpenFilterSheet() },
                     activeFiltersCount = activeFiltersCount,
-                    onSearchSubmitted = { term -> viewModel.saveRecentSearch(term) }
+                    onSearchSubmitted = { term -> onSearchSubmitted(term) }
                 )
 
                 // Row of Property Type Filter Chips (Apartment, Villa, Studio, House, Plot/Land, Commercial)
@@ -275,7 +453,7 @@ fun HomeScreen(
                         FilterChip(
                             selected = isSelected,
                             onClick = {
-                                viewModel.selectPropertyType(if (typeKey == "All") null else typeKey)
+                                onSelectPropertyType(if (typeKey == "All") null else typeKey)
                             },
                             leadingIcon = {
                                 Text(
@@ -321,7 +499,7 @@ fun HomeScreen(
                         if (selectedPropertyType != null) {
                             FilterChip(
                                 selected = true,
-                                onClick = { viewModel.selectPropertyType(null) },
+                                onClick = { onSelectPropertyType(null) },
                                 label = { Text("$selectedPropertyType ✕", fontSize = 11.sp) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -338,7 +516,7 @@ fun HomeScreen(
                             }
                             FilterChip(
                                 selected = true,
-                                onClick = { viewModel.clearPriceRange() },
+                                onClick = { onClearPriceRange() },
                                 label = { Text(rangeText, fontSize = 11.sp) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -349,7 +527,7 @@ fun HomeScreen(
                         if (selectedLocation != "All Locations" && selectedLocation != "Kottakuppam") {
                             FilterChip(
                                 selected = true,
-                                onClick = { viewModel.selectLocation("All Locations") },
+                                onClick = { onSelectLocation("All Locations") },
                                 label = { Text("$selectedLocation ✕", fontSize = 11.sp) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -360,7 +538,7 @@ fun HomeScreen(
                         if (selectedCategory != PropertyCategory.ALL) {
                             FilterChip(
                                 selected = true,
-                                onClick = { viewModel.selectCategory(PropertyCategory.ALL) },
+                                onClick = { onSelectCategory(PropertyCategory.ALL) },
                                 label = { Text("${selectedCategory.label} ✕", fontSize = 11.sp) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -371,7 +549,7 @@ fun HomeScreen(
                         if (selectedBudget != com.example.viewmodel.BudgetFilter.ALL) {
                             FilterChip(
                                 selected = true,
-                                onClick = { viewModel.setBudgetFilter(com.example.viewmodel.BudgetFilter.ALL) },
+                                onClick = { onSetBudgetFilter(com.example.viewmodel.BudgetFilter.ALL) },
                                 label = { Text("${selectedBudget.label} ✕", fontSize = 11.sp) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -382,7 +560,7 @@ fun HomeScreen(
                         if (selectedBedrooms > 0) {
                             FilterChip(
                                 selected = true,
-                                onClick = { viewModel.setBedroomsFilter(0) },
+                                onClick = { onSetBedroomsFilter(0) },
                                 label = { Text("${selectedBedrooms} BHK ✕", fontSize = 11.sp) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
@@ -393,7 +571,7 @@ fun HomeScreen(
                         if (urgentOnly) {
                             FilterChip(
                                 selected = true,
-                                onClick = { viewModel.setUrgentOnly(false) },
+                                onClick = { onSetUrgentOnly(false) },
                                 label = { Text("⚡ Urgent ✕", fontSize = 11.sp) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = UrgencyFlameContainer,
@@ -404,7 +582,7 @@ fun HomeScreen(
                         if (verifiedOnly) {
                             FilterChip(
                                 selected = true,
-                                onClick = { viewModel.setVerifiedOnly(false) },
+                                onClick = { onSetVerifiedOnly(false) },
                                 label = { Text("🛡️ Verified ✕", fontSize = 11.sp) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = com.example.ui.theme.VerifiedGreenContainer,
@@ -419,7 +597,7 @@ fun HomeScreen(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier
-                                .clickable { viewModel.resetFilters() }
+                                .clickable { onResetFilters() }
                                 .padding(horizontal = 6.dp)
                         )
                     }
@@ -461,7 +639,7 @@ fun HomeScreen(
                         .clickable(
                             interactionSource = aiInteractionSource,
                             indication = null
-                        ) { viewModel.openAiAssistant() }
+                        ) { onOpenAiAssistant() }
                         .padding(horizontal = 14.dp, vertical = 12.dp)
                         .testTag("ai_assistant_banner"),
                     verticalAlignment = Alignment.CenterVertically,
@@ -557,7 +735,7 @@ fun HomeScreen(
                         shape = RoundedCornerShape(10.dp),
                         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
                         modifier = Modifier
-                            .clickable { viewModel.openSmartMatchDialog() }
+                            .clickable { onOpenSmartMatchDialog() }
                             .testTag("home_smart_match_tune_button")
                     ) {
                         Row(
@@ -608,16 +786,16 @@ fun HomeScreen(
                     smartMatchResults.take(3).forEach { result ->
                         SmartMatchCard(
                             result = result,
-                            onClick = { viewModel.openPropertyDetails(result.property) },
-                            onToggleSave = { viewModel.toggleSave(result.property) },
-                            onContactSeller = { viewModel.openContactSeller(result.property) },
-                            onBookVisit = { viewModel.openVisitBooking(result.property) }
+                            onClick = { onOpenPropertyDetails(result.property) },
+                            onToggleSave = { onToggleSave(result.property) },
+                            onContactSeller = { onContactSeller(result.property) },
+                            onBookVisit = { onBookVisit(result.property) }
                         )
                     }
 
                     if (smartMatchResults.size > 3) {
                         OutlinedButton(
-                            onClick = { viewModel.openSmartMatchDialog() },
+                            onClick = { onOpenSmartMatchDialog() },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag("view_all_smart_matches_button"),
@@ -710,7 +888,7 @@ fun HomeScreen(
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.clickable { viewModel.toggleUrgentOnly() }
+                            modifier = Modifier.clickable { onToggleUrgentOnly() }
                         )
                     }
 
@@ -723,9 +901,9 @@ fun HomeScreen(
                         items(urgentProperties, key = { "urgent_${it.id}" }) { property ->
                             UrgentPropertyCard(
                                 property = property,
-                                onClick = { viewModel.openPropertyDetails(property) },
-                                onToggleSave = { viewModel.toggleSave(property) },
-                                onContactSeller = { viewModel.openContactSeller(property) }
+                                onClick = { onOpenPropertyDetails(property) },
+                                onToggleSave = { onToggleSave(property) },
+                                onContactSeller = { onContactSeller(property) }
                             )
                         }
                     }
@@ -775,7 +953,7 @@ fun HomeScreen(
                                 .clickable(
                                     interactionSource = catInteraction,
                                     indication = null
-                                ) { viewModel.selectCategory(cat) }
+                                ) { onSelectCategory(cat) }
                                 .testTag("category_chip_${cat.name}")
                         ) {
                             Column(
@@ -819,7 +997,7 @@ fun HomeScreen(
             ) {
                 FilterChip(
                     selected = urgentOnly,
-                    onClick = { viewModel.toggleUrgentOnly() },
+                    onClick = { onToggleUrgentOnly() },
                     label = { Text("🔥 Urgent Only (1-7 Days)", fontSize = 12.sp) },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = UrgencyFlameContainer,
@@ -837,13 +1015,13 @@ fun HomeScreen(
                     recentSearches = recentSearches,
                     currentQuery = searchQuery,
                     onSelectSearch = { term ->
-                        viewModel.updateSearchQuery(term)
+                        onSearchQueryChange(term)
                     },
                     onRemoveSearch = { term ->
-                        viewModel.removeRecentSearch(term)
+                        onRemoveRecentSearch(term)
                     },
                     onClearAll = {
-                        viewModel.clearRecentSearches()
+                        onClearRecentSearches()
                     },
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
                 )
@@ -871,7 +1049,7 @@ fun HomeScreen(
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.clickable { viewModel.setTab(1) }
+                    modifier = Modifier.clickable { onNavigateToExplore() }
                 )
             }
         }
@@ -921,8 +1099,8 @@ fun HomeScreen(
                 Box(modifier = Modifier.padding(horizontal = 16.dp)) {
                     PropertyCard(
                         property = property,
-                        onClick = { viewModel.openPropertyDetails(property) },
-                        onToggleSave = { viewModel.toggleSave(property) }
+                        onClick = { onOpenPropertyDetails(property) },
+                        onToggleSave = { onToggleSave(property) }
                     )
                 }
             }

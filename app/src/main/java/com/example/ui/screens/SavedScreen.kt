@@ -68,7 +68,31 @@ import com.example.ui.theme.UrgencyFlame
 import com.example.ui.theme.UrgencyFlameContainer
 import com.example.ui.theme.VerifiedGreen
 import com.example.ui.theme.VerifiedGreenContainer
+import com.example.viewmodel.MainViewModel
 import com.example.viewmodel.QuickNestViewModel
+import com.example.viewmodel.SavedViewModel
+
+@Composable
+fun SavedScreen(
+    savedViewModel: SavedViewModel,
+    mainViewModel: MainViewModel,
+    modifier: Modifier = Modifier
+) {
+    val savedProperties by savedViewModel.savedProperties.collectAsStateWithLifecycle()
+    val visits by savedViewModel.visits.collectAsStateWithLifecycle()
+
+    SavedScreen(
+        savedProperties = savedProperties,
+        visits = visits,
+        onOpenPropertyDetails = { mainViewModel.openPropertyDetails(it) },
+        onToggleSave = { savedViewModel.toggleSave(it) },
+        onContactSeller = { mainViewModel.openContactSeller(it) },
+        onUpdateVisitStatus = { id, status -> savedViewModel.updateVisitStatus(id, status) },
+        onCancelVisit = { savedViewModel.cancelVisit(it) },
+        onDeleteVisit = { savedViewModel.deleteVisit(it) },
+        modifier = modifier
+    )
+}
 
 @Composable
 fun SavedScreen(
@@ -77,6 +101,32 @@ fun SavedScreen(
 ) {
     val savedProperties by viewModel.savedProperties.collectAsStateWithLifecycle()
     val visits by viewModel.visits.collectAsStateWithLifecycle()
+
+    SavedScreen(
+        savedProperties = savedProperties,
+        visits = visits,
+        onOpenPropertyDetails = { viewModel.openPropertyDetails(it) },
+        onToggleSave = { viewModel.toggleSave(it) },
+        onContactSeller = { viewModel.openContactSeller(it) },
+        onUpdateVisitStatus = { id, status -> viewModel.updateVisitStatus(id, status) },
+        onCancelVisit = { viewModel.cancelVisit(it) },
+        onDeleteVisit = { viewModel.deleteVisit(it) },
+        modifier = modifier
+    )
+}
+
+@Composable
+fun SavedScreen(
+    savedProperties: List<Property>,
+    visits: List<com.example.data.model.PropertyVisit>,
+    onOpenPropertyDetails: (Property) -> Unit,
+    onToggleSave: (Property) -> Unit,
+    onContactSeller: (Property) -> Unit,
+    onUpdateVisitStatus: (String, String) -> Unit,
+    onCancelVisit: (String) -> Unit,
+    onDeleteVisit: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
 
     var selectedTab by remember { mutableStateOf(0) } // 0: Saved Properties, 1: Booked Visits
     var selectedFilter by remember { mutableStateOf("All") }
@@ -227,9 +277,9 @@ fun SavedScreen(
                 items(filteredSaved, key = { it.id }) { property ->
                     PropertyCard(
                         property = property,
-                        onClick = { viewModel.openPropertyDetails(property) },
-                        onToggleSave = { viewModel.toggleSave(property) },
-                        onContactSeller = { viewModel.openContactSeller(property) }
+                        onClick = { onOpenPropertyDetails(property) },
+                        onToggleSave = { onToggleSave(property) },
+                        onContactSeller = { onContactSeller(property) }
                     )
                 }
             }
@@ -347,7 +397,7 @@ fun SavedScreen(
                             ) {
                                 if (visit.status == "Confirmed") {
                                     OutlinedButton(
-                                        onClick = { viewModel.updateVisitStatus(visit.id, "Completed") },
+                                        onClick = { onUpdateVisitStatus(visit.id, "Completed") },
                                         shape = RoundedCornerShape(10.dp),
                                         modifier = Modifier.weight(1f),
                                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
@@ -356,7 +406,7 @@ fun SavedScreen(
                                     }
 
                                     OutlinedButton(
-                                        onClick = { viewModel.cancelVisit(visit.id) },
+                                        onClick = { onCancelVisit(visit.id) },
                                         shape = RoundedCornerShape(10.dp),
                                         modifier = Modifier.weight(1f),
                                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
@@ -365,7 +415,7 @@ fun SavedScreen(
                                     }
                                 } else {
                                     OutlinedButton(
-                                        onClick = { viewModel.deleteVisit(visit.id) },
+                                        onClick = { onDeleteVisit(visit.id) },
                                         shape = RoundedCornerShape(10.dp),
                                         modifier = Modifier.weight(1f),
                                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)

@@ -133,6 +133,11 @@ dependencies {
   implementation(libs.play.services.maps)
   // implementation(libs.play.services.location)
   implementation(libs.retrofit)
+  // Koin Dependency Injection
+  implementation(libs.koin.core)
+  implementation(libs.koin.android)
+  implementation(libs.koin.androidx.compose)
+  testImplementation(libs.koin.test)
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)
   testImplementation(libs.androidx.junit)

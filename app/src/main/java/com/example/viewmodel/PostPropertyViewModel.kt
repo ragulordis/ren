@@ -1,14 +1,11 @@
 package com.example.viewmodel
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.data.local.QuickNestDatabase
 import com.example.data.model.Property
 import com.example.data.model.PropertyCategory
 import com.example.data.model.SellingSpeed
 import com.example.data.repository.AuthRepository
-import com.example.data.repository.PropertyRepositoryImpl
 import com.example.domain.usecase.PostListingParams
 import com.example.domain.usecase.PostListingUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,12 +14,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class PostPropertyViewModel(
-    application: Application,
-    private val postListingUseCase: PostListingUseCase = PostListingUseCase(
-        PropertyRepositoryImpl(QuickNestDatabase.getInstance(application).propertyDao()),
-        com.example.data.repository.AuthRepositoryImpl()
-    )
-) : AndroidViewModel(application) {
+    private val postListingUseCase: PostListingUseCase,
+    private val authRepository: AuthRepository
+) : ViewModel() {
 
     private val _isSubmitting = MutableStateFlow(false)
     val isSubmitting: StateFlow<Boolean> = _isSubmitting.asStateFlow()
@@ -30,10 +24,11 @@ class PostPropertyViewModel(
     private val _postResult = MutableStateFlow<Result<Property>?>(null)
     val postResult: StateFlow<Result<Property>?> = _postResult.asStateFlow()
 
-    fun submitListing(
+    fun postNewProperty(
         title: String,
         description: String,
         price: Long,
+        marketEstimate: Long = price,
         location: String,
         category: PropertyCategory,
         propertyType: String,
@@ -53,6 +48,7 @@ class PostPropertyViewModel(
                 title = title,
                 description = description,
                 price = price,
+                marketEstimate = marketEstimate,
                 location = location,
                 category = category,
                 propertyType = propertyType,
