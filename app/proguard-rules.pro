@@ -12,10 +12,37 @@
 #   public *;
 #}
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Production ProGuard / R8 Rules for Ren
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Line numbers & debugging attributes
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
+-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
+
+# Keep app data & domain models (Room, Moshi, Firestore, serialization)
+-keep class com.example.data.model.** { *; }
+-keep class com.example.domain.model.** { *; }
+-keep class com.example.data.local.** { *; }
+
+# Room
+-keep class androidx.room.RoomDatabase { *; }
+-dontwarn androidx.room.paging.**
+
+# Koin Dependency Injection
+-keep class org.koin.** { *; }
+-dontwarn org.koin.**
+
+# Firebase
+-keep class com.google.firebase.** { *; }
+-dontwarn com.google.firebase.**
+
+# Kotlin Coroutines
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+-keepclassmembernames class kotlinx.coroutines.** {
+    volatile <fields>;
+}
+
+# Coil
+-keep class coil.** { *; }
+-dontwarn coil.**
