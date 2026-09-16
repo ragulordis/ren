@@ -93,8 +93,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.data.model.BudgetFilter
@@ -111,11 +109,6 @@ import com.example.ui.components.QuickMatchDialog
 import com.example.ui.components.ReportDialog
 import com.example.ui.components.SmartMatchDialog
 import com.example.ui.components.VisitBookingDialog
-import com.example.ui.screens.ExploreScreen
-import com.example.ui.screens.HomeScreen
-import com.example.ui.screens.PostPropertyScreen
-import com.example.ui.screens.ProfileScreen
-import com.example.ui.screens.SavedScreen
 import com.example.ui.theme.CardBorder
 import com.example.ui.theme.CardBorderSubtle
 import com.example.ui.theme.CoolGlassmorphicBorder
@@ -128,7 +121,6 @@ import com.example.viewmodel.HomeViewModel
 import com.example.viewmodel.MainViewModel
 import com.example.viewmodel.PostPropertyViewModel
 import com.example.viewmodel.ProfileViewModel
-import com.example.viewmodel.QuickNestViewModel
 import com.example.viewmodel.SavedViewModel
 import org.koin.androidx.compose.koinViewModel
 
@@ -153,8 +145,7 @@ fun QuickNestApp(
     exploreViewModel: ExploreViewModel = koinViewModel(),
     postViewModel: PostPropertyViewModel = koinViewModel(),
     savedViewModel: SavedViewModel = koinViewModel(),
-    profileViewModel: ProfileViewModel = koinViewModel(),
-    legacyViewModel: QuickNestViewModel = koinViewModel()
+    profileViewModel: ProfileViewModel = koinViewModel()
 ) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -471,35 +462,17 @@ fun QuickNestApp(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            NavHost(
+            com.example.ui.navigation.QuickNestNavHost(
                 navController = navController,
-                startDestination = QuickNestRoute.Home,
+                mainViewModel = mainViewModel,
+                authViewModel = authViewModel,
+                homeViewModel = homeViewModel,
+                exploreViewModel = exploreViewModel,
+                postViewModel = postViewModel,
+                savedViewModel = savedViewModel,
+                profileViewModel = profileViewModel,
                 modifier = Modifier.fillMaxSize()
-            ) {
-                composable<QuickNestRoute.Home> {
-                    HomeScreen(homeViewModel = homeViewModel, mainViewModel = mainViewModel)
-                }
-                composable<QuickNestRoute.Explore> {
-                    ExploreScreen(exploreViewModel = exploreViewModel, mainViewModel = mainViewModel)
-                }
-                composable<QuickNestRoute.PostProperty> {
-                    PostPropertyScreen(postViewModel = postViewModel)
-                }
-                composable<QuickNestRoute.Saved> {
-                    SavedScreen(savedViewModel = savedViewModel, mainViewModel = mainViewModel)
-                }
-                composable<QuickNestRoute.Profile> {
-                    val userRole by profileViewModel.userRole.collectAsStateWithLifecycle()
-                    val currentUserProfile by profileViewModel.currentUserProfile.collectAsStateWithLifecycle()
-                    ProfileScreen(
-                        userRole = userRole,
-                        currentUserProfile = currentUserProfile,
-                        onSetUserRole = { profileViewModel.setUserRole(it) },
-                        onFeedback = { mainViewModel.showFeedback(it) },
-                        onLogout = { authViewModel.logout() }
-                    )
-                }
-            }
+            )
         }
     }
 
@@ -614,16 +587,12 @@ fun QuickNestApp(
 
     if (showSmartMatchDialog) {
         SmartMatchDialog(
-            viewModel = legacyViewModel,
+            homeViewModel = homeViewModel,
+            mainViewModel = mainViewModel,
             onSelectProperty = { mainViewModel.openPropertyDetails(it) },
             onDismiss = { mainViewModel.closeSmartMatchDialog() }
         )
     }
 }
 
-// Backward-compatible overload for existing tests
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun QuickNestApp(viewModel: QuickNestViewModel) {
-    QuickNestApp(legacyViewModel = viewModel)
-}
+

@@ -70,19 +70,21 @@ import com.example.ui.theme.BrandPrimary
 import com.example.ui.theme.CardBorder
 import com.example.ui.theme.CoolCyanGradient
 import com.example.ui.theme.CoolHeroGradient
-import com.example.viewmodel.QuickNestViewModel
+import com.example.viewmodel.HomeViewModel
+import com.example.viewmodel.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SmartMatchDialog(
-    viewModel: QuickNestViewModel,
+    homeViewModel: HomeViewModel,
+    mainViewModel: MainViewModel,
     onSelectProperty: (Property) -> Unit,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val preferences by viewModel.smartMatchPreferences.collectAsState()
-    val results by viewModel.smartMatchResults.collectAsState()
-    val isLoading by viewModel.isSmartMatchLoading.collectAsState()
+    val preferences by homeViewModel.smartMatchPreferences.collectAsState()
+    val results by homeViewModel.smartMatchResults.collectAsState()
+    val isLoading by homeViewModel.isSmartMatchLoading.collectAsState()
 
     var showFiltersSection by remember { mutableStateOf(false) }
 
@@ -263,7 +265,7 @@ fun SmartMatchDialog(
                                     val isSelected = preferences.location.equals(loc, ignoreCase = true)
                                     FilterChip(
                                         selected = isSelected,
-                                        onClick = { viewModel.updateSmartMatchLocation(loc) },
+                                        onClick = { homeViewModel.updateSmartMatchLocation(loc) },
                                         label = { Text(loc, fontSize = 11.sp) },
                                         leadingIcon = if (isSelected) {
                                             { Icon(Icons.Default.Check, null, modifier = Modifier.size(14.dp)) }
@@ -307,7 +309,7 @@ fun SmartMatchDialog(
                                     val isSelected = preferences.maxBudget == budgetValue
                                     FilterChip(
                                         selected = isSelected,
-                                        onClick = { viewModel.updateSmartMatchBudget(budgetValue) },
+                                        onClick = { homeViewModel.updateSmartMatchBudget(budgetValue) },
                                         label = { Text(label, fontSize = 11.sp) },
                                         leadingIcon = if (isSelected) {
                                             { Icon(Icons.Default.Check, null, modifier = Modifier.size(14.dp)) }
@@ -340,7 +342,7 @@ fun SmartMatchDialog(
                                     val isSelected = preferences.propertyType.equals(type, ignoreCase = true)
                                     FilterChip(
                                         selected = isSelected,
-                                        onClick = { viewModel.updateSmartMatchPropertyType(type) },
+                                        onClick = { homeViewModel.updateSmartMatchPropertyType(type) },
                                         label = { Text(type, fontSize = 11.sp) },
                                         leadingIcon = if (isSelected) {
                                             { Icon(Icons.Default.Check, null, modifier = Modifier.size(14.dp)) }
@@ -368,7 +370,7 @@ fun SmartMatchDialog(
                                     val isSelected = preferences.listingType == lType
                                     FilterChip(
                                         selected = isSelected,
-                                        onClick = { viewModel.updateSmartMatchListingType(lType) },
+                                        onClick = { homeViewModel.updateSmartMatchListingType(lType) },
                                         label = { Text(lType.name, fontSize = 11.sp) },
                                         leadingIcon = if (isSelected) {
                                             { Icon(Icons.Default.Check, null, modifier = Modifier.size(14.dp)) }
@@ -421,7 +423,7 @@ fun SmartMatchDialog(
                 }
 
                 Button(
-                    onClick = { viewModel.runSmartMatchQuery() },
+                    onClick = { homeViewModel.refreshSmartMatches() },
                     shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp),
@@ -476,13 +478,11 @@ fun SmartMatchDialog(
                         )
                         Button(
                             onClick = {
-                                viewModel.updateAllSmartMatchPreferences(
-                                    budget = Long.MAX_VALUE,
-                                    location = "All",
-                                    propertyType = "All Types",
-                                    listingType = ListingType.BUY,
-                                    bedrooms = 0
-                                )
+                                homeViewModel.updateSmartMatchBudget(Long.MAX_VALUE)
+                                homeViewModel.updateSmartMatchLocation("All")
+                                homeViewModel.updateSmartMatchPropertyType("All Types")
+                                homeViewModel.updateSmartMatchListingType(ListingType.BUY)
+                                homeViewModel.refreshSmartMatches()
                             },
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.padding(top = 8.dp)
@@ -508,14 +508,14 @@ fun SmartMatchDialog(
                                 onDismiss()
                                 onSelectProperty(result.property)
                             },
-                            onToggleSave = { viewModel.toggleSave(result.property) },
+                            onToggleSave = { mainViewModel.toggleSave(result.property) },
                             onContactSeller = {
                                 onDismiss()
-                                viewModel.openContactSeller(result.property)
+                                mainViewModel.openContactSeller(result.property)
                             },
                             onBookVisit = {
                                 onDismiss()
-                                viewModel.openVisitBooking(result.property)
+                                mainViewModel.openVisitBooking(result.property)
                             }
                         )
                     }

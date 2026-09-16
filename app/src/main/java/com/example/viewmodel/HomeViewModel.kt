@@ -84,11 +84,11 @@ class HomeViewModel(
     // Smart Match State
     private val _smartMatchPreferences = MutableStateFlow(
         UserPreferences(
-            preferredListingType = ListingType.BUY,
+            listingType = ListingType.BUY,
             maxBudget = 5000000L,
-            minBedrooms = 2,
+            preferredBedrooms = 2,
             location = "All",
-            propertyType = "All"
+            propertyType = "All Types"
         )
     )
     val smartMatchPreferences: StateFlow<UserPreferences> = _smartMatchPreferences.asStateFlow()
@@ -275,6 +275,35 @@ class HomeViewModel(
     fun toggleSave(property: Property) {
         viewModelScope.launch {
             toggleSavePropertyUseCase(property)
+        }
+    }
+
+    fun updateSmartMatchBudget(newBudget: Long) {
+        _smartMatchPreferences.value = _smartMatchPreferences.value.copy(maxBudget = newBudget)
+        refreshSmartMatches()
+    }
+
+    fun updateSmartMatchLocation(location: String) {
+        _smartMatchPreferences.value = _smartMatchPreferences.value.copy(location = location)
+        refreshSmartMatches()
+    }
+
+    fun updateSmartMatchPropertyType(propertyType: String) {
+        _smartMatchPreferences.value = _smartMatchPreferences.value.copy(propertyType = propertyType)
+        refreshSmartMatches()
+    }
+
+    fun updateSmartMatchListingType(listingType: ListingType) {
+        _smartMatchPreferences.value = _smartMatchPreferences.value.copy(listingType = listingType)
+        refreshSmartMatches()
+    }
+
+    fun refreshSmartMatches() {
+        viewModelScope.launch {
+            _isSmartMatchLoading.value = true
+            val results = smartMatchUseCase(_smartMatchPreferences.value)
+            _smartMatchResults.value = results
+            _isSmartMatchLoading.value = false
         }
     }
 }
