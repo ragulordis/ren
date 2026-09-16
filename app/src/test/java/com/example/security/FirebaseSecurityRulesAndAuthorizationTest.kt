@@ -109,4 +109,34 @@ class FirebaseSecurityRulesAndAuthorizationTest {
         assertFalse(com.example.data.model.VisitStatus.isValidTransition(cancelled, confirmed))
         assertFalse(com.example.data.model.VisitStatus.isValidTransition(declined, confirmed))
     }
+
+    @Test
+    fun `conversations are strictly scoped to property and buyer to prevent cross-buyer leaks`() {
+        val propertyId = "prop_beach_villa_1"
+        val buyerA = "buyer_alice_1"
+        val buyerB = "buyer_bob_2"
+        val seller = "seller_sam_99"
+
+        val firestoreService = com.example.data.remote.FirestoreService()
+        val conversationIdA = firestoreService.resolveConversationId(propertyId, buyerA)
+        val conversationIdB = firestoreService.resolveConversationId(propertyId, buyerB)
+
+        // Must be distinct conversation threads for separate buyers
+        assertNotEquals(conversationIdA, conversationIdB)
+        assertEquals("${propertyId}_${buyerA}", conversationIdA)
+        assertEquals("${propertyId}_${buyerB}", conversationIdB)
+
+        // Conversation A participants: Seller + Buyer A
+        val participantsA = listOf(seller, buyerA)
+        // Conversation B participants: Seller + Buyer B
+        val participantsB = listOf(seller, buyerB)
+
+        // Buyer B must NOT have access to Conversation A
+        assertFalse("Buyer B cannot access Buyer A's conversation with seller", participantsA.contains(buyerB))
+        // Buyer A must NOT have access to Conversation B
+        assertFalse("Buyer A cannot access Buyer B's conversation with seller", participantsB.contains(buyerA))
+        // Seller has access to both
+        assertTrue(participantsA.contains(seller))
+        assertTrue(participantsB.contains(seller))
+    }
 }

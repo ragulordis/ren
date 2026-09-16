@@ -92,14 +92,21 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (
         request.auth.uid in resource.data.participants
       );
-      // Conversation creation must bound to seller (property owner) and the initiating buyer
+      // Conversation creation must be bound to seller (property owner) and the initiating buyer
       allow create: if isAuthenticated()
                     && (request.auth.uid in request.resource.data.participants)
                     && (request.resource.data.participants.size() <= 2)
                     && (
-                      get(/databases/$(database)/documents/properties/$(conversationId)).data.ownerId in request.resource.data.participants
+                      (
+                        'propertyId' in request.resource.data
+                        && get(/databases/$(database)/documents/properties/$(request.resource.data.propertyId)).data.ownerId in request.resource.data.participants
+                      )
+                      ||
+                      (
+                        get(/databases/$(database)/documents/properties/$(conversationId)).data.ownerId in request.resource.data.participants
+                      )
                     );
-      // Participants cannot be arbitrary added or escalated post-creation
+      // Participants cannot be arbitrarily added or escalated post-creation
       allow update: if isAuthenticated()
                     && request.auth.uid in resource.data.participants
                     && request.resource.data.participants == resource.data.participants;

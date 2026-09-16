@@ -281,32 +281,59 @@ class FirestoreService {
     }
 
     /**
-     * Sync a chat message to Firestore at /conversations/{propertyId}/messages/{msgId}.
-     * Ensures parent conversation document exists with senderId in participants array.
+     * Resolves the authoritative conversation document ID.
+     * When a buyerId is present and differs from the property ownerId, scopes conversation to propertyId_buyerId.
+     * Otherwise falls back to propertyId for backward compatibility.
+     */
+    fun resolveConversationId(propertyId: String, participantId: String = ""): String {
+        return if (participantId.isNotBlank()) {
+            "${propertyId}_${participantId}"
+        } else {
+            propertyId
+        }
+    }
+
+    /**
+     * Sync a chat message to Firestore at /conversations/{conversationId}/messages/{msgId}.
+     * Ensures parent conversation document exists with authoritative participants (property owner + buyer).
      */
     suspend fun saveChatMessage(
         propertyId: String,
-        message: com.example.data.model.ChatMessage
+        message: com.example.data.model.ChatMessage,
+        buyerId: String = ""
     ): Result<Unit> = runCatching {
         val db = firestore ?: throw IllegalStateException("Firestore not initialized")
         val senderId = message.senderId.ifBlank {
             runCatching { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid }.getOrNull() ?: ""
         }
 
+        // Authoritative participant derivation: resolve property ownerId from backend
+        val propDoc = runCatching { db.collection("properties").document(propertyId).get().await() }.getOrNull()
+        val ownerId = propDoc?.getString("ownerId") ?: ""
+
+        val effectiveBuyerId = buyerId.ifBlank {
+            if (senderId != ownerId) senderId else ""
+        }
+        val conversationDocId = if (effectiveBuyerId.isNotBlank()) {
+            resolveConversationId(propertyId, effectiveBuyerId)
+        } else {
+            propertyId
+        }
+
         // Ensure parent conversation exists and has authoritative participants (owner + sender)
-        val convRef = db.collection("conversations").document(propertyId)
+        val convRef = db.collection("conversations").document(conversationDocId)
         val convDoc = runCatching { convRef.get().await() }.getOrNull()
         if (convDoc == null || !convDoc.exists()) {
-            // Authoritative participant derivation: resolve property ownerId from backend
-            val propDoc = runCatching { db.collection("properties").document(propertyId).get().await() }.getOrNull()
-            val ownerId = propDoc?.getString("ownerId") ?: ""
             val participants = mutableSetOf<String>()
             if (ownerId.isNotBlank()) participants.add(ownerId)
             if (senderId.isNotBlank()) participants.add(senderId)
+            if (effectiveBuyerId.isNotBlank()) participants.add(effectiveBuyerId)
 
             convRef.set(mapOf(
+                "id" to conversationDocId,
                 "propertyId" to propertyId,
                 "sellerId" to ownerId,
+                "buyerId" to effectiveBuyerId,
                 "participants" to participants.toList(),
                 "lastUpdatedAt" to System.currentTimeMillis()
             ), SetOptions.merge()).await()
@@ -315,6 +342,7 @@ class FirestoreService {
         val data = hashMapOf(
             "id" to message.id,
             "propertyId" to propertyId,
+            "conversationId" to conversationDocId,
             "senderId" to senderId,
             "senderName" to message.senderName,
             "message" to message.message,
@@ -359,24 +387,34 @@ class FirestoreService {
     /**
      * Stream real-time chat messages from Firestore for cross-device delivery.
      * Messages are ordered by timestamp ascending so the conversation thread renders correctly.
+     * Fails fast by closing the Flow with an error if Firestore is uninitialized or the listener encounters an error.
      */
-    fun streamChatMessages(propertyId: String): kotlinx.coroutines.flow.Flow<List<com.example.data.model.ChatMessage>> = callbackFlow {
+    fun streamChatMessages(
+        propertyId: String,
+        buyerId: String = ""
+    ): kotlinx.coroutines.flow.Flow<List<com.example.data.model.ChatMessage>> = callbackFlow {
         val db = firestore
         if (db == null) {
-            trySend(emptyList())
-            close()
+            close(IllegalStateException("Firestore is not initialized"))
             return@callbackFlow
         }
 
         val currentUid = runCatching { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid }.getOrNull()
+        val effectiveBuyerId = buyerId.ifBlank { currentUid ?: "" }
+        val conversationDocId = if (effectiveBuyerId.isNotBlank()) {
+            resolveConversationId(propertyId, effectiveBuyerId)
+        } else {
+            propertyId
+        }
 
         val listener = db.collection("conversations")
-            .document(propertyId)
+            .document(conversationDocId)
             .collection("messages")
             .orderBy("timestamp", Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    Log.w("FirestoreService", "Chat stream failed for $propertyId: ${error.message}")
+                    Log.w("FirestoreService", "Chat stream failed for $conversationDocId: ${error.message}")
+                    close(error)
                     return@addSnapshotListener
                 }
                 if (snapshot != null) {
