@@ -147,7 +147,12 @@ class RenProductionCertificationCujTest {
         assertEquals("buyer_123", visits.first().buyerId)
         assertEquals("seller_456", visits.first().sellerId)
 
-        // 5. Buyer sends inquiry message
+        // 5. Seller transitions visit status from Requested to Confirmed
+        propertyRepository.updateVisitStatus(visit.id, com.example.data.model.VisitStatus.CONFIRMED.value)
+        val updatedVisits = propertyRepository.allVisits.first()
+        assertEquals(com.example.data.model.VisitStatus.CONFIRMED.value, updatedVisits.first().status)
+
+        // 6. Buyer sends inquiry message
         val chatResult = sendChatMessageUseCase.sendMessage(prop.id, "Is this villa still available?")
         assertTrue("Chat message transmission should succeed", chatResult.isSuccess)
         val sentMsg = chatResult.getOrThrow()

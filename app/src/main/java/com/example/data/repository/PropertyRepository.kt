@@ -112,7 +112,16 @@ class PropertyRepositoryImpl(
     }
 
     override suspend fun updateVisitStatus(visitId: String, status: String) {
-        dao.updateVisitStatus(visitId, status)
+        val targetStatus = com.example.domain.model.VisitStatus.fromString(status)
+        val currentVisit = dao.getVisitByIdSync(visitId)?.toDomain()
+        if (currentVisit != null) {
+            val currentStatus = com.example.domain.model.VisitStatus.fromString(currentVisit.status)
+            require(com.example.domain.model.VisitStatus.isValidTransition(currentStatus, targetStatus)) {
+                "Illegal visit status transition from ${currentStatus.name} to ${targetStatus.name}"
+            }
+        }
+        dao.updateVisitStatus(visitId, targetStatus.value)
+        firestoreService.updateVisitStatus(visitId, targetStatus.value)
     }
 
     override suspend fun deleteVisit(visitId: String) {

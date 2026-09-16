@@ -84,8 +84,7 @@ class FirestoreService {
     fun streamProperties(): Flow<List<Property>> = callbackFlow {
         val db = firestore
         if (db == null) {
-            trySend(emptyList())
-            close()
+            close(IllegalStateException("Firestore is not initialized"))
             return@callbackFlow
         }
 
@@ -93,6 +92,7 @@ class FirestoreService {
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     Log.w("FirestoreService", "Listen failed: ${error.message}")
+                    close(error)
                     return@addSnapshotListener
                 }
                 if (snapshot != null) {
@@ -267,6 +267,20 @@ class FirestoreService {
     }
 
     /**
+     * Update visit lifecycle status in Firestore.
+     */
+    suspend fun updateVisitStatus(visitId: String, status: String): Result<Unit> = runCatching {
+        val db = firestore ?: throw IllegalStateException("Firestore not initialized")
+        db.collection("visits").document(visitId)
+            .update(
+                mapOf(
+                    "status" to status,
+                    "updatedAt" to System.currentTimeMillis()
+                )
+            ).await()
+    }
+
+    /**
      * Sync a chat message to Firestore at /conversations/{propertyId}/messages/{msgId}.
      * Ensures parent conversation document exists with senderId in participants array.
      */
@@ -279,21 +293,23 @@ class FirestoreService {
             runCatching { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid }.getOrNull() ?: ""
         }
 
-        // Ensure parent conversation exists and has sender in participants so security rules pass
+        // Ensure parent conversation exists and has authoritative participants (owner + sender)
         val convRef = db.collection("conversations").document(propertyId)
         val convDoc = runCatching { convRef.get().await() }.getOrNull()
         if (convDoc == null || !convDoc.exists()) {
-            val initialParticipants = if (senderId.isNotBlank()) listOf(senderId) else emptyList()
+            // Authoritative participant derivation: resolve property ownerId from backend
+            val propDoc = runCatching { db.collection("properties").document(propertyId).get().await() }.getOrNull()
+            val ownerId = propDoc?.getString("ownerId") ?: ""
+            val participants = mutableSetOf<String>()
+            if (ownerId.isNotBlank()) participants.add(ownerId)
+            if (senderId.isNotBlank()) participants.add(senderId)
+
             convRef.set(mapOf(
                 "propertyId" to propertyId,
-                "participants" to initialParticipants,
+                "sellerId" to ownerId,
+                "participants" to participants.toList(),
                 "lastUpdatedAt" to System.currentTimeMillis()
             ), SetOptions.merge()).await()
-        } else {
-            val existingParticipants = (convDoc.get("participants") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
-            if (senderId.isNotBlank() && !existingParticipants.contains(senderId)) {
-                convRef.update("participants", com.google.firebase.firestore.FieldValue.arrayUnion(senderId)).await()
-            }
         }
 
         val data = hashMapOf(

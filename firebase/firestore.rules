@@ -64,10 +64,25 @@ service cloud.firestore {
         resource.data.buyerId == request.auth.uid ||
         resource.data.sellerId == request.auth.uid
       );
-      allow create: if isAuthenticated() && request.resource.data.buyerId == request.auth.uid;
+      allow create: if isAuthenticated()
+                    && request.resource.data.buyerId == request.auth.uid
+                    && request.resource.data.status == 'Requested';
       allow update: if isAuthenticated() && (
-        resource.data.buyerId == request.auth.uid ||
-        resource.data.sellerId == request.auth.uid
+        // Buyer or Seller can transition based on authoritative state machine:
+        // Immutable IDs & core attributes:
+        request.resource.data.buyerId == resource.data.buyerId
+        && request.resource.data.sellerId == resource.data.sellerId
+        && request.resource.data.propertyId == resource.data.propertyId
+        && (
+          // Seller can confirm or decline requested visits
+          (request.auth.uid == resource.data.sellerId && resource.data.status == 'Requested' && request.resource.data.status in ['Confirmed', 'Declined'])
+          ||
+          // Buyer can cancel requested or confirmed visits
+          (request.auth.uid == resource.data.buyerId && resource.data.status in ['Requested', 'Confirmed'] && request.resource.data.status == 'Cancelled')
+          ||
+          // Seller can complete confirmed visits
+          (request.auth.uid == resource.data.sellerId && resource.data.status == 'Confirmed' && request.resource.data.status == 'Completed')
+        )
       );
       allow delete: if isAuthenticated() && resource.data.buyerId == request.auth.uid;
     }
@@ -77,13 +92,17 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (
         request.auth.uid in resource.data.participants
       );
-      allow create: if isAuthenticated() && (
-        request.auth.uid in request.resource.data.participants
-      );
-      allow update: if isAuthenticated() && (
-        request.auth.uid in resource.data.participants ||
-        request.auth.uid in request.resource.data.participants
-      );
+      // Conversation creation must bound to seller (property owner) and the initiating buyer
+      allow create: if isAuthenticated()
+                    && (request.auth.uid in request.resource.data.participants)
+                    && (request.resource.data.participants.size() <= 2)
+                    && (
+                      get(/databases/$(database)/documents/properties/$(conversationId)).data.ownerId in request.resource.data.participants
+                    );
+      // Participants cannot be arbitrary added or escalated post-creation
+      allow update: if isAuthenticated()
+                    && request.auth.uid in resource.data.participants
+                    && request.resource.data.participants == resource.data.participants;
 
       match /messages/{messageId} {
         allow read: if isAuthenticated() && (

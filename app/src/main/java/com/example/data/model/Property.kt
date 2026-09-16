@@ -5,6 +5,7 @@ typealias ListingType = com.example.domain.model.ListingType
 typealias SellingSpeed = com.example.domain.model.SellingSpeed
 typealias PropertyCategory = com.example.domain.model.PropertyCategory
 typealias ListingStatus = com.example.domain.model.ListingStatus
+typealias VisitStatus = com.example.domain.model.VisitStatus
 
 fun formatIndianCurrency(amount: Long, type: ListingType): String {
     return com.example.domain.model.formatIndianCurrency(amount, type)

@@ -56,6 +56,41 @@ enum class ListingStatus(val value: String) {
     }
 }
 
+enum class VisitStatus(val value: String) {
+    REQUESTED("Requested"),
+    CONFIRMED("Confirmed"),
+    COMPLETED("Completed"),
+    CANCELLED("Cancelled"),
+    DECLINED("Declined");
+
+    companion object {
+        fun fromString(status: String): VisitStatus {
+            return entries.firstOrNull {
+                it.name.equals(status, ignoreCase = true) || it.value.equals(status, ignoreCase = true)
+            } ?: REQUESTED
+        }
+
+        /**
+         * Authoritative state machine transitions:
+         * - REQUESTED -> CONFIRMED (by Seller)
+         * - REQUESTED -> DECLINED (by Seller)
+         * - REQUESTED -> CANCELLED (by Buyer)
+         * - CONFIRMED -> COMPLETED (after visit happens)
+         * - CONFIRMED -> CANCELLED (by Buyer or Seller)
+         */
+        fun isValidTransition(from: VisitStatus, to: VisitStatus): Boolean {
+            if (from == to) return true
+            return when (from) {
+                REQUESTED -> to in listOf(CONFIRMED, DECLINED, CANCELLED)
+                CONFIRMED -> to in listOf(COMPLETED, CANCELLED)
+                COMPLETED -> false
+                CANCELLED -> false
+                DECLINED -> false
+            }
+        }
+    }
+}
+
 data class Property(
     val id: String,
     val ownerId: String,

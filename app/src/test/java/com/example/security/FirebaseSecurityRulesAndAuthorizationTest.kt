@@ -87,4 +87,26 @@ class FirebaseSecurityRulesAndAuthorizationTest {
         assertTrue(participants.contains(authorizedUser))
         assertFalse(participants.contains(attacker))
     }
+
+    @Test
+    fun `visit state machine strictly enforces lifecycle transitions`() {
+        val requested = com.example.data.model.VisitStatus.REQUESTED
+        val confirmed = com.example.data.model.VisitStatus.CONFIRMED
+        val completed = com.example.data.model.VisitStatus.COMPLETED
+        val cancelled = com.example.data.model.VisitStatus.CANCELLED
+        val declined = com.example.data.model.VisitStatus.DECLINED
+
+        // Valid transitions
+        assertTrue(com.example.data.model.VisitStatus.isValidTransition(requested, confirmed))
+        assertTrue(com.example.data.model.VisitStatus.isValidTransition(requested, declined))
+        assertTrue(com.example.data.model.VisitStatus.isValidTransition(requested, cancelled))
+        assertTrue(com.example.data.model.VisitStatus.isValidTransition(confirmed, completed))
+        assertTrue(com.example.data.model.VisitStatus.isValidTransition(confirmed, cancelled))
+
+        // Invalid transitions
+        assertFalse(com.example.data.model.VisitStatus.isValidTransition(requested, completed))
+        assertFalse(com.example.data.model.VisitStatus.isValidTransition(completed, requested))
+        assertFalse(com.example.data.model.VisitStatus.isValidTransition(cancelled, confirmed))
+        assertFalse(com.example.data.model.VisitStatus.isValidTransition(declined, confirmed))
+    }
 }

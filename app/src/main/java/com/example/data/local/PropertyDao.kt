@@ -95,6 +95,12 @@ interface PropertyDao {
     @Query("SELECT * FROM visits ORDER BY id DESC")
     fun getAllVisits(): Flow<List<VisitEntity>>
 
+    @Query("SELECT * FROM visits WHERE id = :id LIMIT 1")
+    fun getVisitById(id: String): Flow<VisitEntity?>
+
+    @Query("SELECT * FROM visits WHERE id = :id LIMIT 1")
+    suspend fun getVisitByIdSync(id: String): VisitEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertVisit(visit: VisitEntity)
 
