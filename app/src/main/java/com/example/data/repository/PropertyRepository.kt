@@ -31,8 +31,9 @@ interface PropertyRepository {
     suspend fun updateVisitStatus(visitId: String, status: String)
     suspend fun deleteVisit(visitId: String)
     fun getChatMessagesForProperty(propertyId: String): Flow<List<ChatMessage>>
-    fun streamChatMessages(propertyId: String): Flow<List<ChatMessage>>
-    suspend fun insertChatMessage(message: ChatMessage)
+    /** Stream real-time chat from the buyer-scoped Firestore conversation ({propertyId}_{buyerId}). */
+    fun streamChatMessages(propertyId: String, buyerId: String): Flow<List<ChatMessage>>
+    suspend fun insertChatMessage(message: ChatMessage, buyerId: String = "")
     suspend fun reportProperty(propertyId: String, propertyTitle: String, reason: String, details: String)
     suspend fun updatePropertyStatus(propertyId: String, status: String)
     suspend fun deleteProperty(propertyId: String)
@@ -134,13 +135,15 @@ class PropertyRepositoryImpl(
         }
     }
 
-    override fun streamChatMessages(propertyId: String): Flow<List<ChatMessage>> {
-        return firestoreService.streamChatMessages(propertyId)
+    override fun streamChatMessages(propertyId: String, buyerId: String): Flow<List<ChatMessage>> {
+        return firestoreService.streamChatMessages(propertyId, buyerId)
     }
 
-    override suspend fun insertChatMessage(message: ChatMessage) {
+    override suspend fun insertChatMessage(message: ChatMessage, buyerId: String) {
         dao.insertMessage(com.example.data.local.ChatMessageEntity.fromDomain(message))
-        firestoreService.saveChatMessage(message.propertyId, message)
+        // Pass explicit buyerId; fall back to message.senderId when not provided
+        val effectiveBuyerId = buyerId.ifBlank { message.senderId }
+        firestoreService.saveChatMessage(message.propertyId, message, effectiveBuyerId)
     }
 
     override suspend fun reportProperty(propertyId: String, propertyTitle: String, reason: String, details: String) {

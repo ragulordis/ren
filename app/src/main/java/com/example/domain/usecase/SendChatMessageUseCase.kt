@@ -16,18 +16,20 @@ class SendChatMessageUseCase(
     fun getMessages(propertyId: String): Flow<List<ChatMessage>> {
         // Stream from Firestore, caching to local Room, while emitting local Room messages
         return kotlinx.coroutines.flow.channelFlow {
+            val myId = authRepository.currentUserId() ?: ""
+            val myName = authRepository.currentUser()?.displayName
+
             // First launch a collector for remote messages to persist them to Room
             val remoteJob = kotlinx.coroutines.launch {
-                repository.streamChatMessages(propertyId).collect { remoteMsgs ->
-                    val myId = authRepository.currentUserId()
-                    val myName = authRepository.currentUser()?.displayName
+                // Pass explicit buyerId so FirestoreService uses the scoped conversation path
+                repository.streamChatMessages(propertyId, myId).collect { remoteMsgs ->
                     remoteMsgs.forEach { remoteMsg ->
-                        val isMine = if (myId != null && remoteMsg.senderId.isNotBlank()) {
+                        val isMine = if (myId.isNotBlank() && remoteMsg.senderId.isNotBlank()) {
                             remoteMsg.senderId == myId
                         } else {
-                            remoteMsg.isFromMe || (myId != null && remoteMsg.senderName == myName)
+                            remoteMsg.isFromMe || (myId.isNotBlank() && remoteMsg.senderName == myName)
                         }
-                        repository.insertChatMessage(remoteMsg.copy(isFromMe = isMine))
+                        repository.insertChatMessage(remoteMsg.copy(isFromMe = isMine), buyerId = myId)
                     }
                 }
             }
@@ -54,7 +56,8 @@ class SendChatMessageUseCase(
             time = "Just now",
             isFromMe = true
         )
-        repository.insertChatMessage(message)
+        // Pass myId as explicit buyerId so the scoped conversation path is used
+        repository.insertChatMessage(message, buyerId = myId)
         message
     }
 
