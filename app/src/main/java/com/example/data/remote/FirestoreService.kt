@@ -38,20 +38,20 @@ class FirestoreService {
                 price = doc.getLong("price") ?: 0L,
                 originalPrice = doc.getLong("originalPrice") ?: (doc.getLong("price") ?: 0L),
                 marketEstimate = doc.getLong("marketEstimate") ?: (doc.getLong("price") ?: 0L),
-                location = doc.getString("location") ?: "Kottakuppam",
+                location = doc.getString("location") ?: "",
                 approximateArea = doc.getString("approximateArea") ?: "",
-                distanceKm = doc.getDouble("distanceKm") ?: 1.0,
-                bedrooms = doc.getLong("bedrooms")?.toInt() ?: 2,
-                bathrooms = doc.getLong("bathrooms")?.toInt() ?: 2,
-                areaSqFt = doc.getLong("areaSqFt")?.toInt() ?: 1000,
-                urgencyScore = doc.getLong("urgencyScore")?.toInt() ?: 50,
-                verificationLevel = doc.getLong("verificationLevel")?.toInt() ?: 1,
-                imageResName = doc.getString("imageResName") ?: "prop_1",
+                distanceKm = doc.getDouble("distanceKm") ?: 0.0,
+                bedrooms = doc.getLong("bedrooms")?.toInt() ?: 0,
+                bathrooms = doc.getLong("bathrooms")?.toInt() ?: 0,
+                areaSqFt = doc.getLong("areaSqFt")?.toInt() ?: 0,
+                urgencyScore = doc.getLong("urgencyScore")?.toInt() ?: 0,
+                verificationLevel = doc.getLong("verificationLevel")?.toInt() ?: 0,
+                imageResName = doc.getString("imageResName") ?: "",
                 featuresList = (doc.get("featuresList") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                 suitableFor = doc.getString("suitableFor") ?: "All",
                 leaseDurationMonths = doc.getLong("leaseDurationMonths")?.toInt(),
                 isDepositRefundable = doc.getBoolean("isDepositRefundable") ?: true,
-                ownerName = doc.getString("ownerName") ?: "Owner",
+                ownerName = doc.getString("ownerName") ?: "",
                 ownerPhone = doc.getString("ownerPhone") ?: "",
                 ownerType = doc.getString("ownerType") ?: "Owner",
                 isSaved = false,
@@ -60,8 +60,8 @@ class FirestoreService {
                 messagesCount = doc.getLong("messagesCount")?.toInt() ?: 0,
                 visitRequestsCount = doc.getLong("visitRequestsCount")?.toInt() ?: 0,
                 interestedBuyersCount = doc.getLong("interestedBuyersCount")?.toInt() ?: 0,
-                mapLat = doc.getDouble("mapLat") ?: 11.9754,
-                mapLng = doc.getDouble("mapLng") ?: 79.8360,
+                mapLat = doc.getDouble("mapLat") ?: 0.0,
+                mapLng = doc.getDouble("mapLng") ?: 0.0,
                 isPrivate = doc.getBoolean("isPrivate") ?: false,
                 status = doc.getString("status") ?: "AVAILABLE"
             )
@@ -69,13 +69,14 @@ class FirestoreService {
     }
 
     /**
-     * One-time fetch of all properties from Firestore for manual pull-to-refresh
+     * One-time fetch of all properties from Firestore for manual pull-to-refresh.
+     * Throws IllegalStateException or FirebaseException on failure so callers can distinguish errors from empty data.
      */
-    suspend fun fetchPropertiesOnce(): List<Property> = runCatching {
-        val db = firestore ?: return@runCatching emptyList()
+    suspend fun fetchPropertiesOnce(): List<Property> {
+        val db = firestore ?: throw IllegalStateException("Firestore not initialized")
         val snapshot = db.collection("properties").get().await()
-        snapshot.documents.mapNotNull { parseDocToProperty(it) }
-    }.getOrDefault(emptyList())
+        return snapshot.documents.mapNotNull { parseDocToProperty(it) }
+    }
 
     /**
      * Stream properties in real-time from Firestore collection "properties"
@@ -234,7 +235,7 @@ class FirestoreService {
      *   allow write: if request.auth.uid == request.resource.data.buyerId;
      */
     suspend fun saveVisit(visit: PropertyVisit): Result<Unit> = runCatching {
-        val db = firestore ?: return@runCatching
+        val db = firestore ?: throw IllegalStateException("Firestore not initialized")
         val data = hashMapOf(
             "id" to visit.id,
             "propertyId" to visit.propertyId,
@@ -286,15 +287,20 @@ class FirestoreService {
         propertyTitle: String,
         reason: String,
         details: String,
-        reportId: String
+        reportId: String,
+        reporterId: String = ""
     ): Result<Unit> = runCatching {
-        val db = firestore ?: return@runCatching
+        val db = firestore ?: throw IllegalStateException("Firestore not initialized")
+        val resolvedReporterId = reporterId.ifBlank {
+            runCatching { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid }.getOrNull() ?: ""
+        }
         val data = hashMapOf(
             "id" to reportId,
             "propertyId" to propertyId,
             "propertyTitle" to propertyTitle,
             "reason" to reason,
             "details" to details,
+            "reporterId" to resolvedReporterId,
             "status" to "PENDING_REVIEW",
             "createdAt" to System.currentTimeMillis()
         )
