@@ -34,10 +34,14 @@ class ProfileViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), authRepository.currentUser())
 
-    private val _userRole = MutableStateFlow(
-        authRepository.currentUser()?.role?.name?.replace("_", " ")?.lowercase()?.replaceFirstChar { it.uppercase() } ?: "Individual"
+    val userRole: StateFlow<String> = currentUserProfile.map { profile ->
+        profile?.role?.name?.replace("_", " ")?.lowercase()?.replaceFirstChar { it.uppercase() }
+            ?: "Buyer"
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000),
+        authRepository.currentUser()?.role?.name?.replace("_", " ")?.lowercase()?.replaceFirstChar { it.uppercase() } ?: "Buyer"
     )
-    val userRole: StateFlow<String> = _userRole.asStateFlow()
 
     val myProperties: StateFlow<List<Property>> = propertyRepository.allProperties.map { list ->
         val uid = authRepository.currentUserId()
@@ -48,8 +52,9 @@ class ProfileViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    @Deprecated("Roles are authoritative and determined by the backend. Client cannot escalate roles.")
     fun setUserRole(role: String) {
-        _userRole.value = role
+        // No-op: client cannot mutate server-authoritative role.
     }
 
     fun triggerFeedback(message: String) {
@@ -64,13 +69,19 @@ class ProfileViewModel(
 
     fun deleteProperty(property: Property) {
         viewModelScope.launch {
-            propertyRepository.deleteProperty(property.id)
+            val uid = authRepository.currentUserId()
+            if (uid != null && property.ownerId == uid) {
+                propertyRepository.deleteProperty(property.id)
+            }
         }
     }
 
     fun markPropertyStatus(property: Property, status: String) {
         viewModelScope.launch {
-            propertyRepository.updatePropertyStatus(property.id, status)
+            val uid = authRepository.currentUserId()
+            if (uid != null && property.ownerId == uid) {
+                propertyRepository.updatePropertyStatus(property.id, status)
+            }
         }
     }
 }
