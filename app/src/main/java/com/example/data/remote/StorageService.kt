@@ -35,9 +35,11 @@ class StorageService(
             val fileUuid = UUID.randomUUID().toString()
             val storageRef = fbStorage.reference.child("property_images/$propertyId/$fileUuid.jpg")
 
+            val ownerId = runCatching { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid }.getOrNull() ?: ""
             val metadata = StorageMetadata.Builder()
                 .setContentType("image/jpeg")
                 .setCustomMetadata("propertyId", propertyId)
+                .setCustomMetadata("ownerId", ownerId)
                 .build()
 
             // Open stream from ContentResolver to handle content:// uris reliably
