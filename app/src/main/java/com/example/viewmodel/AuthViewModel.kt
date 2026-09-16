@@ -37,7 +37,28 @@ class AuthViewModel(
             AuthState.Loading
         )
 
-    val currentUserProfile: StateFlow<UserProfile?> = MutableStateFlow(authRepository.currentUser())
+    private val _currentUserProfile = MutableStateFlow(authRepository.currentUser())
+    val currentUserProfile: StateFlow<UserProfile?> = _currentUserProfile.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            authRepository.authState.collect { state ->
+                when (state) {
+                    is AuthState.SignedIn -> {
+                        _currentUserProfile.value = state.profile
+                        _isLoggedIn.value = true
+                    }
+                    is AuthState.SignedOut -> {
+                        _currentUserProfile.value = null
+                        if (!prefs.getBoolean("is_guest_mode", false)) {
+                            _isLoggedIn.value = false
+                        }
+                    }
+                    else -> {}
+                }
+            }
+        }
+    }
 
     fun completeOnboarding() {
         prefs.edit().putBoolean("is_onboarded", true).apply()

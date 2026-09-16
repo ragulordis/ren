@@ -489,7 +489,15 @@ fun QuickNestApp(
                     SavedScreen(savedViewModel = savedViewModel, mainViewModel = mainViewModel)
                 }
                 composable<QuickNestRoute.Profile> {
-                    ProfileScreen(profileViewModel = profileViewModel, mainViewModel = mainViewModel)
+                    val userRole by profileViewModel.userRole.collectAsStateWithLifecycle()
+                    val currentUserProfile by profileViewModel.currentUserProfile.collectAsStateWithLifecycle()
+                    ProfileScreen(
+                        userRole = userRole,
+                        currentUserProfile = currentUserProfile,
+                        onSetUserRole = { profileViewModel.setUserRole(it) },
+                        onFeedback = { mainViewModel.showFeedback(it) },
+                        onLogout = { authViewModel.logout() }
+                    )
                 }
             }
         }
