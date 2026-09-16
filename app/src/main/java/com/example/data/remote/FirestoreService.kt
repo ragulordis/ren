@@ -254,25 +254,44 @@ class FirestoreService {
 
     /**
      * Sync a chat message to Firestore at /conversations/{propertyId}/messages/{msgId}.
-     * This makes messages visible across devices and to the property seller in real time.
+     * Ensures parent conversation document exists with senderId in participants array.
      */
     suspend fun saveChatMessage(
         propertyId: String,
         message: com.example.data.model.ChatMessage
     ): Result<Unit> = runCatching {
-        val db = firestore ?: return@runCatching
+        val db = firestore ?: throw IllegalStateException("Firestore not initialized")
+        val senderId = message.senderId.ifBlank {
+            runCatching { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid }.getOrNull() ?: ""
+        }
+
+        // Ensure parent conversation exists and has sender in participants so security rules pass
+        val convRef = db.collection("conversations").document(propertyId)
+        val convDoc = runCatching { convRef.get().await() }.getOrNull()
+        if (convDoc == null || !convDoc.exists()) {
+            val initialParticipants = if (senderId.isNotBlank()) listOf(senderId) else emptyList()
+            convRef.set(mapOf(
+                "propertyId" to propertyId,
+                "participants" to initialParticipants,
+                "lastUpdatedAt" to System.currentTimeMillis()
+            ), SetOptions.merge()).await()
+        } else {
+            val existingParticipants = (convDoc.get("participants") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+            if (senderId.isNotBlank() && !existingParticipants.contains(senderId)) {
+                convRef.update("participants", com.google.firebase.firestore.FieldValue.arrayUnion(senderId)).await()
+            }
+        }
+
         val data = hashMapOf(
             "id" to message.id,
             "propertyId" to propertyId,
+            "senderId" to senderId,
             "senderName" to message.senderName,
             "message" to message.message,
             "time" to message.time,
-            "isFromMe" to message.isFromMe,
             "timestamp" to System.currentTimeMillis()
         )
-        db.collection("conversations")
-            .document(propertyId)
-            .collection("messages")
+        convRef.collection("messages")
             .document(message.id)
             .set(data, SetOptions.merge())
             .await()
@@ -319,6 +338,8 @@ class FirestoreService {
             return@callbackFlow
         }
 
+        val currentUid = runCatching { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid }.getOrNull()
+
         val listener = db.collection("conversations")
             .document(propertyId)
             .collection("messages")
@@ -331,13 +352,20 @@ class FirestoreService {
                 if (snapshot != null) {
                     val messages = snapshot.documents.mapNotNull { doc ->
                         runCatching {
+                            val senderId = doc.getString("senderId") ?: ""
+                            val isMine = if (currentUid != null && senderId.isNotBlank()) {
+                                senderId == currentUid
+                            } else {
+                                doc.getBoolean("isFromMe") ?: false
+                            }
                             com.example.data.model.ChatMessage(
                                 id = doc.getString("id") ?: doc.id,
                                 propertyId = doc.getString("propertyId") ?: propertyId,
+                                senderId = senderId,
                                 senderName = doc.getString("senderName") ?: "User",
                                 message = doc.getString("message") ?: "",
                                 time = doc.getString("time") ?: "Just now",
-                                isFromMe = doc.getBoolean("isFromMe") ?: false
+                                isFromMe = isMine
                             )
                         }.getOrNull()
                     }

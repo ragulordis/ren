@@ -52,6 +52,7 @@ data class VisitEntity(
 data class ChatMessageEntity(
     @PrimaryKey val id: String,
     val propertyId: String,
+    val senderId: String = "",
     val senderName: String,
     val message: String,
     val time: String,
@@ -61,6 +62,7 @@ data class ChatMessageEntity(
     fun toDomain() = com.example.data.model.ChatMessage(
         id = id,
         propertyId = propertyId,
+        senderId = senderId,
         senderName = senderName,
         message = message,
         time = time,
@@ -71,6 +73,7 @@ data class ChatMessageEntity(
         fun fromDomain(msg: com.example.data.model.ChatMessage, timestamp: Long = System.currentTimeMillis()) = ChatMessageEntity(
             id = msg.id,
             propertyId = msg.propertyId,
+            senderId = msg.senderId,
             senderName = msg.senderName,
             message = msg.message,
             time = msg.time,

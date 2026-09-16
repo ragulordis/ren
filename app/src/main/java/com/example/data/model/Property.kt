@@ -25,10 +25,11 @@ data class PropertyVisit(
 data class ChatMessage(
     val id: String,
     val propertyId: String,
+    val senderId: String = "",
     val senderName: String,
     val message: String,
     val time: String,
-    val isFromMe: Boolean
+    val isFromMe: Boolean = false
 )
 
 data class BuyerMatch(

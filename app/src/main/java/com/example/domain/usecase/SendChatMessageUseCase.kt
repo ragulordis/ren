@@ -22,7 +22,11 @@ class SendChatMessageUseCase(
                     val myId = authRepository.currentUserId()
                     val myName = authRepository.currentUser()?.displayName
                     remoteMsgs.forEach { remoteMsg ->
-                        val isMine = remoteMsg.isFromMe || (myId != null && remoteMsg.senderName == myName)
+                        val isMine = if (myId != null && remoteMsg.senderId.isNotBlank()) {
+                            remoteMsg.senderId == myId
+                        } else {
+                            remoteMsg.isFromMe || (myId != null && remoteMsg.senderName == myName)
+                        }
                         repository.insertChatMessage(remoteMsg.copy(isFromMe = isMine))
                     }
                 }
@@ -40,9 +44,11 @@ class SendChatMessageUseCase(
     suspend fun sendMessage(propertyId: String, text: String): Result<ChatMessage> = runCatching {
         require(text.isNotBlank()) { "Message text cannot be blank" }
         val user = authRepository.currentUser()
+        val myId = authRepository.currentUserId() ?: user?.uid ?: ""
         val message = ChatMessage(
             id = "m-${System.currentTimeMillis()}",
             propertyId = propertyId,
+            senderId = myId,
             senderName = user?.displayName?.ifBlank { "Buyer" } ?: "Buyer",
             message = text.trim(),
             time = "Just now",
@@ -60,10 +66,12 @@ class SendChatMessageUseCase(
         buyerPhone: String
     ): Result<ChatMessage> = runCatching {
         val user = authRepository.currentUser()
+        val myId = authRepository.currentUserId() ?: user?.uid ?: ""
         val senderLabel = buyerEmail.ifBlank { user?.displayName?.ifBlank { "Buyer" } ?: "Buyer" }
         val emailLogMsg = ChatMessage(
             id = "m-email-${System.currentTimeMillis()}",
             propertyId = property.id,
+            senderId = myId,
             senderName = senderLabel,
             message = "📧 Formal Email Inquiry Sent:\nSubject: $subject\n\n$messageBody\n\nContact: $buyerPhone | $buyerEmail",
             time = "Just now",

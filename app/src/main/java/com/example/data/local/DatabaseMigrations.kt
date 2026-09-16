@@ -19,3 +19,12 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
         db.execSQL("ALTER TABLE visits ADD COLUMN sellerId TEXT NOT NULL DEFAULT ''")
     }
 }
+
+/**
+ * Adds senderId to the chat_messages table to bind messages authoritatively to the sender's auth UID.
+ */
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE chat_messages ADD COLUMN senderId TEXT NOT NULL DEFAULT ''")
+    }
+}
