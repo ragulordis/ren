@@ -18,6 +18,9 @@ interface PropertyDao {
     @Query("SELECT * FROM properties WHERE id = :id LIMIT 1")
     fun getPropertyById(id: String): Flow<PropertyEntity?>
 
+    @Query("SELECT * FROM properties WHERE id = :id LIMIT 1")
+    suspend fun getPropertyByIdSync(id: String): PropertyEntity?
+
     @Query("SELECT * FROM properties WHERE isSaved = 1")
     fun getSavedProperties(): Flow<List<PropertyEntity>>
 

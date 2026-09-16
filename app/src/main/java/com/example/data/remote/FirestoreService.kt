@@ -230,6 +230,20 @@ class FirestoreService {
     }
 
     /**
+     * Update property listing lifecycle status in Firestore
+     */
+    suspend fun updatePropertyStatus(propertyId: String, status: String): Result<Unit> = runCatching {
+        val db = firestore ?: throw IllegalStateException("Firestore not initialized")
+        db.collection("properties").document(propertyId)
+            .update(
+                mapOf(
+                    "status" to status,
+                    "updatedAt" to System.currentTimeMillis()
+                )
+            ).await()
+    }
+
+    /**
      * Save a scheduled visit to Firestore.
      * Includes buyerId (auth UID) and sellerId (property ownerId) required by Firestore security rules:
      *   allow write: if request.auth.uid == request.resource.data.buyerId;

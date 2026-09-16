@@ -148,7 +148,16 @@ class PropertyRepositoryImpl(
     }
 
     override suspend fun updatePropertyStatus(propertyId: String, status: String) {
-        dao.updatePropertyStatus(propertyId, status)
+        val targetStatus = com.example.domain.model.ListingStatus.fromString(status)
+        val currentProperty = dao.getPropertyByIdSync(propertyId)?.toDomain()
+        if (currentProperty != null) {
+            val currentStatus = com.example.domain.model.ListingStatus.fromString(currentProperty.status)
+            require(com.example.domain.model.ListingStatus.isValidTransition(currentStatus, targetStatus)) {
+                "Illegal listing status transition from ${currentStatus.name} to ${targetStatus.name}"
+            }
+        }
+        dao.updatePropertyStatus(propertyId, targetStatus.value)
+        firestoreService.updatePropertyStatus(propertyId, targetStatus.value)
     }
 
     override suspend fun deleteProperty(propertyId: String) {

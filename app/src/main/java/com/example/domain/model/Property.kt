@@ -27,6 +27,35 @@ enum class PropertyCategory(val label: String, val iconEmoji: String) {
     COMMERCIAL("Commercial", "🏢")
 }
 
+enum class ListingStatus(val value: String) {
+    DRAFT("Draft"),
+    PENDING_REVIEW("Pending Review"),
+    ACTIVE("Active"),
+    SOLD("Sold"),
+    RENTED("Rented"),
+    LEASED("Leased"),
+    ARCHIVED("Archived");
+
+    companion object {
+        fun fromString(status: String): ListingStatus {
+            return entries.firstOrNull {
+                it.name.equals(status, ignoreCase = true) || it.value.equals(status, ignoreCase = true)
+            } ?: ACTIVE
+        }
+
+        fun isValidTransition(from: ListingStatus, to: ListingStatus): Boolean {
+            if (from == to) return true
+            return when (from) {
+                DRAFT -> to in listOf(PENDING_REVIEW, ACTIVE, ARCHIVED)
+                PENDING_REVIEW -> to in listOf(ACTIVE, DRAFT, ARCHIVED)
+                ACTIVE -> to in listOf(SOLD, RENTED, LEASED, ARCHIVED)
+                SOLD, RENTED, LEASED -> to in listOf(ACTIVE, ARCHIVED)
+                ARCHIVED -> to in listOf(DRAFT, ACTIVE)
+            }
+        }
+    }
+}
+
 data class Property(
     val id: String,
     val ownerId: String,
