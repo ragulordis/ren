@@ -49,7 +49,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -84,13 +86,6 @@ fun ProfileScreen(
 ) {
     val userRole by profileViewModel.userRole.collectAsStateWithLifecycle()
     val currentUserProfile by profileViewModel.currentUserProfile.collectAsStateWithLifecycle()
-    val showVerificationDialog by profileViewModel.showVerificationDialog.collectAsStateWithLifecycle()
-    val selectedMethod by profileViewModel.selectedVerificationMethod.collectAsStateWithLifecycle()
-    val activeOtpCode by profileViewModel.activeOtpCode.collectAsStateWithLifecycle()
-    val otpCountdown by profileViewModel.otpCountdown.collectAsStateWithLifecycle()
-    val isVerifying by profileViewModel.isVerifying.collectAsStateWithLifecycle()
-    val verificationMessage by profileViewModel.verificationMessage.collectAsStateWithLifecycle()
-    val verificationError by profileViewModel.verificationError.collectAsStateWithLifecycle()
 
     ProfileScreen(
         userRole = userRole,
@@ -98,28 +93,9 @@ fun ProfileScreen(
         onSetUserRole = { profileViewModel.setUserRole(it) },
         onFeedback = { mainViewModel.showFeedback(it) },
         onLogout = { profileViewModel.logout() },
-        onOpenVerification = { profileViewModel.openVerificationDialog(it) },
+        onDeleteAccount = { profileViewModel.deleteAccount() },
         modifier = modifier
     )
-
-    if (showVerificationDialog) {
-        VerifiedBuyerBottomSheet(
-            userProfile = currentUserProfile,
-            selectedMethod = selectedMethod,
-            activeOtpCode = activeOtpCode,
-            otpCountdown = otpCountdown,
-            isVerifying = isVerifying,
-            verificationMessage = verificationMessage,
-            verificationError = verificationError,
-            onSelectMethod = { profileViewModel.selectVerificationMethod(it) },
-            onSendOtp = { profileViewModel.sendPhoneOtp(it) },
-            onVerifyOtp = { phone, otp -> profileViewModel.verifyPhoneOtp(phone, otp) },
-            onVerifyGovtId = { type, num, name -> profileViewModel.verifyGovernmentId(type, num, name) },
-            onVerifyFinancials = { budget, bank, proof -> profileViewModel.verifyFinancials(budget, bank, proof) },
-            onVerifySelfie = { uri -> profileViewModel.verifySelfie(uri) },
-            onDismiss = { profileViewModel.closeVerificationDialog() }
-        )
-    }
 }
 
 @Composable
@@ -148,6 +124,7 @@ fun ProfileScreen(
     onSetUserRole: (String) -> Unit,
     onFeedback: (String) -> Unit,
     onLogout: () -> Unit,
+    onDeleteAccount: () -> Unit = {},
     onOpenVerification: (VerificationMethodType) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -159,6 +136,7 @@ fun ProfileScreen(
     val email = profile?.email ?: "Not signed in"
     val verificationLevel = profile?.verificationLevel ?: 0
     val uid = profile?.uid ?: ""
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
 
     val initials = remember(displayName) {
         displayName
@@ -168,6 +146,20 @@ fun ProfileScreen(
             .take(2)
             .joinToString("")
             .ifBlank { "U" }
+    }
+
+    if (showDeleteConfirmation) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = { Text("Delete Ren account?") },
+            text = { Text("This permanently deletes your account, listings, messages, visits, and associated data. This action cannot be undone.") },
+            confirmButton = {
+                Button(onClick = { showDeleteConfirmation = false; onDeleteAccount() }) { Text("Delete account") }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showDeleteConfirmation = false }) { Text("Cancel") }
+            }
+        )
     }
 
     LazyColumn(
@@ -372,6 +364,22 @@ fun ProfileScreen(
             }
         }
 
+        // Buyer verification is intentionally unavailable until it is backed by a
+        // compliant provider and server-authoritative review workflow.
+        item {
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Account security", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                    Text("Ren does not currently offer government ID, financial, or biometric verification badges.", fontSize = 12.sp, color = TextSecondary)
+                }
+            }
+        }
+
+        /* Legacy simulated verification UI retained temporarily for source compatibility.
         // 4. TRUST & VERIFICATION LADDER (Section 16)
         item {
             Card(
@@ -496,6 +504,7 @@ fun ProfileScreen(
             }
         }
 
+        */
         // 5. MONETIZATION & BOOST PLANS (Section 25)
         item {
             Card(
@@ -521,7 +530,7 @@ fun ProfileScreen(
                     }
 
                     BoostPlanCard(
-                        "🔥 Urgent Boost",
+                        "Urgent boost",
                         "Top 1 on Urgent Deals + 50 Instant Buyer SMS",
                         "₹299 / 7 Days",
                         UrgencyFlame,
@@ -535,7 +544,7 @@ fun ProfileScreen(
                         onClick = { onFeedback("Featured Listing activated! Gold badge will appear on your properties.") }
                     )
                     BoostPlanCard(
-                        "💼 Broker Pro Subscription",
+                        "Broker Pro subscription",
                         "Unlimited listings + CRM Lead Manager + Verified Broker Tag",
                         "₹1,499 / Month",
                         MaterialTheme.colorScheme.primary,
@@ -595,6 +604,18 @@ fun ProfileScreen(
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold
                 )
+            }
+
+            androidx.compose.material3.OutlinedButton(
+                onClick = { showDeleteConfirmation = true },
+                modifier = Modifier.fillMaxWidth().testTag("delete_account_button"),
+                shape = RoundedCornerShape(12.dp),
+                colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                    contentColor = androidx.compose.ui.graphics.Color(0xFFDC2626)
+                ),
+                border = androidx.compose.foundation.BorderStroke(1.dp, androidx.compose.ui.graphics.Color(0xFFFECACA))
+            ) {
+                Text("Delete account and associated data", fontSize = 13.sp, fontWeight = FontWeight.Bold)
             }
         }
     }

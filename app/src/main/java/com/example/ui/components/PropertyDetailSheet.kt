@@ -61,6 +61,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.PersonOff
 import androidx.compose.material.icons.filled.PinDrop
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Share
@@ -135,7 +136,8 @@ fun PropertyDetailSheet(
     onOpenChat: () -> Unit,
     onOpenVisitBooking: () -> Unit,
     onOpenQuickMatch: () -> Unit,
-    onOpenReport: (() -> Unit)? = null
+    onOpenReport: (() -> Unit)? = null,
+    onBlockOwner: (() -> Unit)? = null
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
@@ -335,7 +337,7 @@ fun PropertyDetailSheet(
                         ) {
                             Icon(Icons.Default.Visibility, null, tint = Color.White, modifier = Modifier.size(13.dp))
                             Text(
-                                text = "Verified Photos",
+                                text = "${property.imageUrls.ifEmpty { listOf(property.imageResName) }.size} photo(s)",
                                 color = Color.White,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold
@@ -350,6 +352,30 @@ fun PropertyDetailSheet(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                if (property.imageUrls.size > 1) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Property gallery", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            property.imageUrls.take(4).forEach { imageUrl ->
+                                PropertyImage(
+                                    imageSource = imageUrl,
+                                    contentDescription = "${property.title} gallery image",
+                                    modifier = Modifier.size(72.dp).clip(RoundedCornerShape(10.dp))
+                                )
+                            }
+                        }
+
+                        if (onBlockOwner != null) {
+                            IconButton(
+                                onClick = onBlockOwner,
+                                modifier = Modifier.background(Color.Black.copy(alpha = 0.6f), CircleShape).testTag("property_detail_block_owner_button")
+                            ) {
+                                Icon(Icons.Default.PersonOff, contentDescription = "Block user", tint = Color.White.copy(alpha = 0.85f))
+                            }
+                        }
+                    }
+                }
+
                 // Price & Value Header
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(
@@ -712,12 +738,12 @@ fun PropertyDetailSheet(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text("🏖️ Serenity Beach: 1.2 km", fontSize = 11.5.sp, color = TextSecondary)
-                                Text("🏥 Health Center: 900 m", fontSize = 11.5.sp, color = TextSecondary)
+                                Text("Serenity Beach: 1.2 km", fontSize = 11.5.sp, color = TextSecondary)
+                                Text("Health Center: 900 m", fontSize = 11.5.sp, color = TextSecondary)
                             }
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text("🎓 Auroville School: 1.8 km", fontSize = 11.5.sp, color = TextSecondary)
-                                Text("🛒 Local Market: 400 m", fontSize = 11.5.sp, color = TextSecondary)
+                                Text("Auroville School: 1.8 km", fontSize = 11.5.sp, color = TextSecondary)
+                                Text("Local Market: 400 m", fontSize = 11.5.sp, color = TextSecondary)
                             }
                         }
                     }
@@ -741,20 +767,6 @@ fun PropertyDetailSheet(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         property.featuresList.forEach { feat ->
-                            val iconEmoji = when {
-                                feat.contains("Security", ignoreCase = true) -> "🔒"
-                                feat.contains("Park", ignoreCase = true) -> "🚗"
-                                feat.contains("Power", ignoreCase = true) -> "⚡"
-                                feat.contains("Water", ignoreCase = true) -> "🚰"
-                                feat.contains("Gym", ignoreCase = true) -> "🏋️"
-                                feat.contains("Pool", ignoreCase = true) -> "🏊"
-                                feat.contains("Garden", ignoreCase = true) -> "🌳"
-                                feat.contains("Lift", ignoreCase = true) || feat.contains("Elevator", ignoreCase = true) -> "🛗"
-                                feat.contains("Solar", ignoreCase = true) -> "☀️"
-                                feat.contains("Vastu", ignoreCase = true) -> "🕉️"
-                                else -> "✨"
-                            }
-
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
                                 color = MaterialTheme.colorScheme.surfaceVariant,
@@ -765,7 +777,6 @@ fun PropertyDetailSheet(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
-                                    Text(text = iconEmoji, fontSize = 12.sp)
                                     Text(
                                         text = feat,
                                         fontSize = 12.sp,
@@ -1042,7 +1053,7 @@ fun PropertyDetailSheet(
                                     color = VerifiedGreen.copy(alpha = 0.15f)
                                 ) {
                                     Text(
-                                        text = "⚡ Responds in < 15 mins",
+                                        text = "Responds quickly",
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = VerifiedGreen,
@@ -1054,85 +1065,9 @@ fun PropertyDetailSheet(
 
                         HorizontalDivider(color = CardBorder)
 
-                        // Contact Info & Direct Call / Email buttons
+                        // Public listings use Ren Chat; private contact details are not exposed.
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(Icons.Default.Phone, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                                    Text(
-                                        text = property.ownerPhone,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = TextPrimary
-                                    )
-                                }
-
-                                Button(
-                                    onClick = {
-                                        try {
-                                            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${property.ownerPhone}"))
-                                            context.startActivity(intent)
-                                        } catch (e: Exception) {
-                                            onOpenChat()
-                                        }
-                                    },
-                                    shape = RoundedCornerShape(10.dp),
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                                    modifier = Modifier.testTag("property_detail_call_button")
-                                ) {
-                                    Icon(Icons.Default.Phone, null, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Call Agent", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                }
-                            }
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(Icons.Default.Email, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                                    Text(
-                                        text = property.ownerEmail,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = TextSecondary
-                                    )
-                                }
-
-                                OutlinedButton(
-                                    onClick = {
-                                        try {
-                                            val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:${property.ownerEmail}")).apply {
-                                                putExtra(Intent.EXTRA_SUBJECT, "Inquiry about property: ${property.title}")
-                                            }
-                                            context.startActivity(intent)
-                                        } catch (e: Exception) {
-                                            onOpenChat()
-                                        }
-                                    },
-                                    shape = RoundedCornerShape(10.dp),
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
-                                    modifier = Modifier.testTag("property_detail_email_button")
-                                ) {
-                                    Icon(Icons.Default.Email, null, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Email", fontSize = 12.sp)
-                                }
-                            }
+                            Text("Use Ren Chat to contact the owner. Contact details remain private until the owner chooses to share them.", fontSize = 12.sp, color = TextSecondary)
                         }
                     }
                 }

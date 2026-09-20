@@ -126,7 +126,7 @@ fun SmartMatchDialog(
                             .background(CoolHeroGradient),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("🎯", fontSize = 20.sp)
+                        Text("Match", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
 
                     Column {
@@ -463,7 +463,7 @@ fun SmartMatchDialog(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("🎯", fontSize = 36.sp)
+                        Text("No matches", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         Text(
                             text = "No exact match with current filters",
                             fontSize = 15.sp,

@@ -50,3 +50,17 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
     }
 }
 
+/** Adds the rental-specific fields and gallery cache introduced for Ren rentals v1. */
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE properties ADD COLUMN imageUrlsCsv TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE properties ADD COLUMN furnishing TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE properties ADD COLUMN securityDeposit INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE properties ADD COLUMN maintenanceAmount INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE properties ADD COLUMN isMaintenanceIncluded INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE properties ADD COLUMN availableFrom TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE properties ADD COLUMN nearbyLandmark TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE properties ADD COLUMN tenantPreferencesCsv TEXT NOT NULL DEFAULT ''")
+    }
+}
+

@@ -55,4 +55,16 @@ class StorageService(
             downloadUrl
         }
     }
+
+    suspend fun uploadPropertyPhotos(
+        propertyId: String,
+        imageUris: List<Uri>,
+        context: Context
+    ): Result<List<String>> = withContext(Dispatchers.IO) {
+        runCatching {
+            imageUris.distinct().map { imageUri ->
+                uploadPropertyPhoto(propertyId, imageUri, context).getOrThrow()
+            }
+        }
+    }
 }

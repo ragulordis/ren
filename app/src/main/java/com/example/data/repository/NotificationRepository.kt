@@ -161,7 +161,7 @@ class NotificationRepositoryImpl(
             val welcomeNotifications = listOf(
                 AppNotification(
                     id = "notif-welcome-1",
-                    title = "Welcome to QuickNest Alerts! 🔔",
+                    title = "Welcome to Ren alerts",
                     message = "You will receive instant real-time alerts for verified listings, price drops, and owner chat messages.",
                     type = NotificationType.SYSTEM_UPDATE,
                     timestamp = System.currentTimeMillis() - 1000 * 60 * 5,

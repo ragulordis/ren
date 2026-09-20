@@ -189,10 +189,10 @@ object SmartMatchEngine {
         val overallPercentage = rawScore.toInt().coerceIn(10, 99) // Realistic capped at 99%
 
         val bestFitHeadline = when {
-            overallPercentage >= 90 -> "🎯 Exceptional Match"
+            overallPercentage >= 90 -> "Exceptional match"
             overallPercentage >= 80 -> "✨ Strong Candidate"
-            overallPercentage >= 70 -> "👍 Good Alternative"
-            else -> "📋 Potential Fit"
+            overallPercentage >= 70 -> "Good alternative"
+            else -> "Potential fit"
         }
 
         return SmartMatchScore(

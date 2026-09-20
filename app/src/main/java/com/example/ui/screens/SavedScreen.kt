@@ -192,7 +192,7 @@ fun SavedScreen(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "🔥 Price Drop Alert: -₹2,00,000",
+                            text = "Price drop alert: -₹2,00,000",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = UrgencyFlame
@@ -217,12 +217,12 @@ fun SavedScreen(
                 Tab(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
-                    text = { Text("❤️ Saved (${savedProperties.size})", fontWeight = FontWeight.Bold, fontSize = 13.sp) }
+                    text = { Text("Saved (${savedProperties.size})", fontWeight = FontWeight.Bold, fontSize = 13.sp) }
                 )
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
-                    text = { Text("📅 Site Visits (${visits.size})", fontWeight = FontWeight.Bold, fontSize = 13.sp) }
+                    text = { Text("Site visits (${visits.size})", fontWeight = FontWeight.Bold, fontSize = 13.sp) }
                 )
             }
         }
@@ -258,7 +258,7 @@ fun SavedScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("❤️", fontSize = 36.sp)
+                            Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(36.dp), tint = TextSecondary)
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = "No saved properties yet",
@@ -295,7 +295,7 @@ fun SavedScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("📅", fontSize = 36.sp)
+                            Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(36.dp), tint = TextSecondary)
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = "No scheduled site visits",

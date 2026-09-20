@@ -547,7 +547,7 @@ class QuickNestViewModel(application: Application) : AndroidViewModel(applicatio
         }
 
         if (!isIndiaLocation(clean)) {
-            _feedbackMessage.value = "Ren is currently available exclusively in India 🇮🇳. International locations coming soon!"
+            _feedbackMessage.value = "Ren is currently available exclusively in India. International locations are coming soon."
             return
         }
 

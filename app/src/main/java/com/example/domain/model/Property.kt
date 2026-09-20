@@ -12,19 +12,19 @@ enum class SellingSpeed(
     val durationText: String,
     val emoji: String
 ) {
-    NORMAL("Normal", "30–90 Days", "🟢"),
-    FAST("Fast Sale", "7–30 Days", "🟡"),
-    URGENT("Urgent Sale", "1–7 Days", "🔴"),
-    PRIVATE("Private Sale", "Verified Buyers Only", "⚫")
+    NORMAL("Normal", "30–90 Days", ""),
+    FAST("Fast Sale", "7–30 Days", ""),
+    URGENT("Urgent Sale", "1–7 Days", ""),
+    PRIVATE("Private Sale", "Verified Buyers Only", "")
 }
 
 enum class PropertyCategory(val label: String, val iconEmoji: String) {
-    ALL("All", "✨"),
-    BUY("Buy", "🏠"),
-    RENT("Rent", "🔑"),
-    LEASE("Lease", "📜"),
-    LAND("Land", "🌳"),
-    COMMERCIAL("Commercial", "🏢")
+    ALL("All", ""),
+    BUY("Buy", ""),
+    RENT("Rent", ""),
+    LEASE("Lease", ""),
+    LAND("Land", ""),
+    COMMERCIAL("Commercial", "")
 }
 
 enum class ListingStatus(val value: String) {
@@ -112,12 +112,22 @@ data class Property(
     val urgencyScore: Int = 3, // 1-5 scale (flames)
     val verificationLevel: Int = 2, // 1: Phone, 2: ID, 3: Ownership, 4: Trusted Seller
     val imageResName: String,
+    /** Ordered Cloud Storage URLs for the listing gallery. The first URL is the cover photo. */
+    val imageUrls: List<String> = emptyList(),
+    val furnishing: String = "",
+    val securityDeposit: Long = 0L,
+    val maintenanceAmount: Long = 0L,
+    val isMaintenanceIncluded: Boolean = false,
+    val availableFrom: String = "",
+    val nearbyLandmark: String = "",
+    val tenantPreferences: List<String> = emptyList(),
     val featuresList: List<String>,
     val suitableFor: String = "Family & Working Professionals",
     val leaseDurationMonths: Int? = null,
     val isDepositRefundable: Boolean = true,
     val ownerName: String,
-    val ownerPhone: String = "+91 98401 23456",
+    /** Never populated in public listing documents; contact occurs through Ren Chat. */
+    val ownerPhone: String = "",
     val ownerType: String = "Owner",
     val isSaved: Boolean = false,
     val viewsCount: Int = 120,
@@ -128,8 +138,8 @@ data class Property(
     val mapLat: Double = 11.9800,
     val mapLng: Double = 79.8350,
     val isPrivate: Boolean = false,
-    val status: String = "Active",
-    val ownerEmail: String = "${ownerName.lowercase().replace(" ", "").filter { it.isLetterOrDigit() }}@ren.in"
+    val status: String = "Pending Review",
+    val ownerEmail: String = ""
 ) {
     val formattedPrice: String
         get() = formatIndianCurrency(price, listingType)

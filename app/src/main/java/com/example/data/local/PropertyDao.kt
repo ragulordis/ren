@@ -125,7 +125,9 @@ interface PropertyDao {
     @Query("DELETE FROM properties WHERE id = :propertyId")
     suspend fun deleteProperty(propertyId: String)
 
-    @Query("DELETE FROM properties WHERE id LIKE 'prop-%' OR ownerId LIKE 'curated_owner_%'")
+    // Production listing IDs use the prop- prefix. Only remove explicitly identified
+    // legacy fixture owners; never purge a real owner-created listing on app launch.
+    @Query("DELETE FROM properties WHERE ownerId LIKE 'curated_owner_%'")
     suspend fun deleteMockProperties()
 
     @Query("SELECT * FROM search_alerts ORDER BY createdAt DESC")

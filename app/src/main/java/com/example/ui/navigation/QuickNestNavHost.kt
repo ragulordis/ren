@@ -62,7 +62,8 @@ fun QuickNestNavHost(
                 currentUserProfile = currentUserProfile,
                 onSetUserRole = { profileViewModel.setUserRole(it) },
                 onFeedback = { mainViewModel.showFeedback(it) },
-                onLogout = { authViewModel.logout() }
+                onLogout = { authViewModel.logout() },
+                onDeleteAccount = { profileViewModel.deleteAccount() }
             )
         }
     }

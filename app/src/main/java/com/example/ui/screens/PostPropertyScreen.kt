@@ -3,734 +3,107 @@ package com.example.ui.screens
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.PhotoCamera
-import coil.compose.AsyncImage
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddPhotoAlternate
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ElectricBolt
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
-import androidx.compose.material3.Divider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.data.model.PropertyCategory
 import com.example.data.model.SellingSpeed
-import com.example.ui.components.UrgencyScoreRow
 import com.example.ui.theme.CardBorder
-import com.example.ui.theme.FastSaleAmber
-import com.example.ui.theme.NormalGreen
-import com.example.ui.theme.PrivateSaleDark
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
-import com.example.ui.theme.UrgencyFlame
-import com.example.ui.theme.UrgencyFlameContainer
 import com.example.viewmodel.PostPropertyViewModel
 import com.example.viewmodel.QuickNestViewModel
 
 @Composable
-fun PostPropertyScreen(
-    postViewModel: PostPropertyViewModel,
-    modifier: Modifier = Modifier
-) {
-    PostPropertyScreen(
-        onPostProperty = { title, desc, cat, type, price, market, loc, beds, baths, sqft, speed, feat, priv, imageUri ->
-            postViewModel.postNewProperty(
-                title = title,
-                description = desc,
-                category = cat,
-                propertyType = type,
-                price = price,
-                marketEstimate = market,
-                location = loc,
-                bedrooms = beds,
-                bathrooms = baths,
-                areaSqFt = sqft,
-                speed = speed,
-                features = feat,
-                isPrivate = priv,
-                imageUri = imageUri
-            )
-        },
-        modifier = modifier
-    )
+fun PostPropertyScreen(postViewModel: PostPropertyViewModel, modifier: Modifier = Modifier) {
+    RentalListingForm({ title, description, category, type, rent, location, beds, baths, area, furnishing, deposit, maintenance, included, available, landmark, tenants, amenities, photos ->
+        postViewModel.postNewProperty(
+            title = title, description = description, category = category, propertyType = type,
+            price = rent, marketEstimate = rent, location = location, bedrooms = beds, bathrooms = baths,
+            areaSqFt = area, speed = SellingSpeed.NORMAL, features = amenities, furnishing = furnishing,
+            securityDeposit = deposit, maintenanceAmount = maintenance, isMaintenanceIncluded = included,
+            availableFrom = available, nearbyLandmark = landmark, tenantPreferences = tenants, imageUris = photos
+        )
+    }, modifier)
+}
+
+/** Compatibility entry point used by legacy tests. */
+@Composable
+fun PostPropertyScreen(viewModel: QuickNestViewModel, modifier: Modifier = Modifier) {
+    RentalListingForm({ title, description, category, type, rent, location, beds, baths, area, _, _, _, _, _, _, _, amenities, _ ->
+        viewModel.postNewProperty(title, description, category, type, rent, rent, location, beds, baths, area, SellingSpeed.NORMAL, amenities, false)
+    }, modifier)
 }
 
 @Composable
-fun PostPropertyScreen(
-    viewModel: QuickNestViewModel,
-    modifier: Modifier = Modifier
+private fun RentalListingForm(
+    onPublish: (String, String, PropertyCategory, String, Long, String, Int, Int, Int, String, Long, Long, Boolean, String, String, List<String>, List<String>, List<Uri>) -> Unit,
+    modifier: Modifier
 ) {
-    PostPropertyScreen(
-        onPostProperty = { title, desc, cat, type, price, market, loc, beds, baths, sqft, speed, feat, priv, imageUri ->
-            viewModel.postNewProperty(
-                title = title,
-                description = desc,
-                category = cat,
-                propertyType = type,
-                price = price,
-                marketEstimate = market,
-                location = loc,
-                bedrooms = beds,
-                bathrooms = baths,
-                areaSqFt = sqft,
-                speed = speed,
-                features = feat,
-                isPrivate = priv
-            )
-        },
-        modifier = modifier
-    )
+    var title by remember { mutableStateOf("") }; var description by remember { mutableStateOf("") }
+    var category by remember { mutableStateOf(PropertyCategory.RENT) }; var type by remember { mutableStateOf("Apartment") }
+    var rent by remember { mutableStateOf("") }; var deposit by remember { mutableStateOf("") }; var maintenance by remember { mutableStateOf("") }
+    var maintenanceIncluded by remember { mutableStateOf(false) }; var city by remember { mutableStateOf("Pondicherry") }; var locality by remember { mutableStateOf("Kottakuppam") }
+    var landmark by remember { mutableStateOf("") }; var available by remember { mutableStateOf("Available now") }; var beds by remember { mutableStateOf("2") }
+    var baths by remember { mutableStateOf("2") }; var area by remember { mutableStateOf("") }; var furnishing by remember { mutableStateOf("Semi-furnished") }
+    var photos by remember { mutableStateOf<List<Uri>>(emptyList()) }; var amenities by remember { mutableStateOf(setOf("Water", "EB")) }
+    var tenants by remember { mutableStateOf(setOf("Family", "Working professionals")) }
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { picked -> photos = (photos + picked).distinct().take(10) }
+    val location = listOf(city.trim(), locality.trim()).filter(String::isNotEmpty).joinToString(", ")
+    val isRental = category == PropertyCategory.RENT
+
+    LazyColumn(modifier.fillMaxSize(), PaddingValues(16.dp, 16.dp, 16.dp, 112.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        item { Column { Text(if (isRental) "Post a rental home" else "Post a property", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = TextPrimary); Text("New listings are reviewed before they go live.", fontSize = 13.sp, color = TextSecondary) } }
+        item { FormCard("Listing type") { CategorySelector(category) { category = it; type = if (it == PropertyCategory.RENT) "Apartment" else "Independent House" } } }
+        item { FormCard("Property") {
+            Field(title, { title = it }, "Listing title", "2 BHK apartment near the beach"); Field(description, { description = it }, "Description", "Describe the home, water, access and rules", 3)
+            Choice("Home type", listOf("Apartment", "Independent House", "Villa", "PG", "Room"), type) { type = it }
+            Choice("Furnishing", listOf("Furnished", "Semi-furnished", "Unfurnished"), furnishing) { furnishing = it }
+            PairFields("BHK", beds, { beds = it }, "Bathrooms", baths, { baths = it }); Field(area, { area = it }, "Area in sq.ft.", keyboard = KeyboardType.Number)
+        } }
+        item { FormCard(if (isRental) "Rent and deposit" else "Price") {
+            Field(rent, { rent = it }, if (isRental) "Monthly rent (₹)" else "Price (₹)", keyboard = KeyboardType.Number)
+            if (isRental) { PairFields("Security deposit (₹)", deposit, { deposit = it }, "Maintenance / month (₹)", maintenance, { maintenance = it }); Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(maintenanceIncluded, { maintenanceIncluded = it }); Text("Maintenance is included in rent", fontSize = 13.sp, color = TextPrimary) } }
+        } }
+        item { FormCard("Location and availability") {
+            PairFields("City", city, { city = it }, "Area / locality", locality, { locality = it }, false); Field(landmark, { landmark = it }, "Nearby landmark")
+            Choice("Availability", listOf("Available now", "Available from date"), available) { available = it }
+        } }
+        if (isRental) item { FormCard("Tenant preferences") { MultiChoice(listOf("Family", "Bachelor", "Students", "Working professionals", "Pets allowed"), tenants) { tenants = it } } }
+        item { FormCard("Amenities") { MultiChoice(listOf("Parking", "Water", "EB", "Lift", "Balcony", "AC", "Wi-Fi", "Gated security"), amenities) { amenities = it } } }
+        item { FormCard("Photos") {
+            Text("Add up to 10 real photos. The first photo is the cover image.", fontSize = 13.sp, color = TextSecondary)
+            Button({ picker.launch("image/*") }, Modifier.fillMaxWidth()) { Icon(Icons.Default.AddPhotoAlternate, null); Text("  Add property photos") }
+            if (photos.isNotEmpty()) LazyColumn(Modifier.height(176.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { items(photos, key = { it.toString() }) { uri -> Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) { AsyncImage(uri, "Selected property photo", Modifier.size(72.dp).clip(RoundedCornerShape(10.dp)), contentScale = ContentScale.Crop); Text(if (uri == photos.first()) "Cover photo" else "Gallery photo", Modifier.weight(1f).padding(horizontal = 12.dp), color = TextPrimary); Icon(Icons.Default.Delete, "Remove photo", Modifier.clickable { photos = photos - uri }) } } }
+        } }
+        item { Button(
+            onClick = { onPublish(title, description, category, type, rent.toLongOrNull() ?: 0, location, beds.toIntOrNull() ?: 0, baths.toIntOrNull() ?: 0, area.toIntOrNull() ?: 0, furnishing, deposit.toLongOrNull() ?: 0, maintenance.toLongOrNull() ?: 0, maintenanceIncluded, available, landmark, tenants.toList(), amenities.toList(), photos) },
+            enabled = title.isNotBlank() && (rent.toLongOrNull() ?: 0) > 0 && location.isNotBlank(), modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(14.dp)
+        ) { Text(if (isRental) "Publish rental for review" else "Publish listing for review", fontWeight = FontWeight.Bold) } }
+    }
 }
 
-@Composable
-fun PostPropertyScreen(
-    onPostProperty: (
-        title: String,
-        description: String,
-        category: PropertyCategory,
-        propertyType: String,
-        price: Long,
-        marketEstimate: Long,
-        location: String,
-        bedrooms: Int,
-        bathrooms: Int,
-        areaSqFt: Int,
-        speed: SellingSpeed,
-        features: List<String>,
-        isPrivate: Boolean,
-        imageUri: Uri?
-    ) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf(PropertyCategory.BUY) }
-    var propertyType by remember { mutableStateOf("Independent House") }
-    var priceText by remember { mutableStateOf("") }
-    var marketEstimateText by remember { mutableStateOf("") }
-    var location by remember { mutableStateOf("Kottakuppam") }
-    var bedrooms by remember { mutableStateOf("2") }
-    var bathrooms by remember { mutableStateOf("2") }
-    var areaSqFt by remember { mutableStateOf("1200") }
-    var selectedSpeed by remember { mutableStateOf(SellingSpeed.FAST) }
-    var protectPrivacy by remember { mutableStateOf(true) }
-    var isPrivateListing by remember { mutableStateOf(false) }
-    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
-
-    val photoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        selectedImageUri = uri
-    }
-
-    val availableFeatures = listOf("Covered Parking", "24/7 Water", "EB 3-Phase", "Private Garden", "Gated Security", "DTCP Approved", "Furnished")
-    val selectedFeatures = remember { mutableStateOf(setOf("Covered Parking", "24/7 Water", "EB 3-Phase")) }
-
-    // Dynamic Urgency Opportunity Score calculation
-    val priceVal = priceText.toLongOrNull() ?: 0L
-    val marketVal = marketEstimateText.toLongOrNull() ?: priceVal
-    val savings = if (marketVal > priceVal && priceVal > 0) marketVal - priceVal else 0L
-
-    val calculatedUrgencyScore by remember(selectedSpeed, savings) {
-        derivedStateOf {
-            var score = when (selectedSpeed) {
-                SellingSpeed.URGENT -> 4
-                SellingSpeed.FAST -> 3
-                SellingSpeed.PRIVATE -> 4
-                SellingSpeed.NORMAL -> 2
-            }
-            if (savings > 300000) score = (score + 1).coerceAtMost(5)
-            score
-        }
-    }
-
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .testTag("post_property_form"),
-        contentPadding = PaddingValues(16.dp, 16.dp, 16.dp, 100.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        item {
-            Column {
-                Text(
-                    text = "Post Property & Match Buyers",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary
-                )
-                Text(
-                    text = "List for free and get matched with verified buyers in minutes",
-                    fontSize = 13.sp,
-                    color = TextSecondary
-                )
-            }
-        }
-
-        // 1. SELLING SPEED SELECTOR (Core Innovation - Section 6)
-        item {
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
-            ) {
-                Column(
-                    modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "⚡ Selling Speed",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
-                        UrgencyScoreRow(score = calculatedUrgencyScore)
-                    }
-
-                    Text(
-                        text = "How quickly do you need this property finalized?",
-                        fontSize = 12.sp,
-                        color = TextSecondary
-                    )
-
-                    // Speed cards
-                    SellingSpeed.values().forEach { speed ->
-                        val isSelected = selectedSpeed == speed
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = if (isSelected) when (speed) {
-                                SellingSpeed.URGENT -> UrgencyFlame.copy(alpha = 0.12f)
-                                SellingSpeed.FAST -> FastSaleAmber.copy(alpha = 0.12f)
-                                SellingSpeed.NORMAL -> NormalGreen.copy(alpha = 0.12f)
-                                SellingSpeed.PRIVATE -> PrivateSaleDark.copy(alpha = 0.12f)
-                            } else MaterialTheme.colorScheme.surfaceVariant,
-                            border = androidx.compose.foundation.BorderStroke(
-                                if (isSelected) 2.dp else 1.dp,
-                                if (isSelected) when (speed) {
-                                    SellingSpeed.URGENT -> UrgencyFlame
-                                    SellingSpeed.FAST -> FastSaleAmber
-                                    SellingSpeed.NORMAL -> NormalGreen
-                                    SellingSpeed.PRIVATE -> PrivateSaleDark
-                                } else CardBorder
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable {
-                                    selectedSpeed = speed
-                                    if (speed == SellingSpeed.PRIVATE) isPrivateListing = true
-                                }
-                                .testTag("speed_option_${speed.name}")
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                Text(speed.emoji, fontSize = 20.sp)
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = speed.title,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 14.sp,
-                                        color = TextPrimary
-                                    )
-                                    Text(
-                                        text = "Expected Timeline: ${speed.durationText}",
-                                        fontSize = 12.sp,
-                                        color = TextSecondary
-                                    )
-                                }
-                                if (isSelected) {
-                                    Icon(
-                                        Icons.Default.Check,
-                                        contentDescription = "Selected",
-                                        tint = when (speed) {
-                                            SellingSpeed.URGENT -> UrgencyFlame
-                                            SellingSpeed.FAST -> FastSaleAmber
-                                            SellingSpeed.NORMAL -> NormalGreen
-                                            SellingSpeed.PRIVATE -> PrivateSaleDark
-                                        },
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // 2. CATEGORY & PROPERTY TYPE
-        item {
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
-            ) {
-                Column(
-                    modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text(
-                        text = "🏠 Category & Property Type",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
-                    )
-
-                    // Category row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        listOf(PropertyCategory.BUY, PropertyCategory.RENT, PropertyCategory.LEASE, PropertyCategory.LAND).forEach { cat ->
-                            val isSel = selectedCategory == cat
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
-                                    .clickable {
-                                        selectedCategory = cat
-                                        propertyType = when (cat) {
-                                            PropertyCategory.LAND -> "Residential Plot"
-                                            PropertyCategory.RENT -> "Rental House"
-                                            PropertyCategory.LEASE -> "Villa for Lease"
-                                            else -> "Independent House"
-                                        }
-                                    }
-                                    .padding(vertical = 8.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "${cat.iconEmoji} ${cat.label}",
-                                    fontSize = 12.sp,
-                                    fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isSel) Color.White else TextPrimary
-                                )
-                            }
-                        }
-                    }
-
-                    OutlinedTextField(
-                        value = title,
-                        onValueChange = { title = it },
-                        label = { Text("Property Title") },
-                        placeholder = { Text("e.g. 2BHK Independent House near Serenity Beach") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp)
-                    )
-
-                    OutlinedTextField(
-                        value = description,
-                        onValueChange = { description = it },
-                        label = { Text("Description & Notes") },
-                        placeholder = { Text("Mention road access, EB connection, water source, possession time...") },
-                        maxLines = 3,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp)
-                    )
-                }
-            }
-        }
-
-        // 3. PRICING & MARKET INTELLIGENCE (Section 7 & 28)
-        item {
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
-            ) {
-                Column(
-                    modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text(
-                        text = "💰 Price & Market Valuation",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = priceText,
-                            onValueChange = { priceText = it },
-                            label = { Text("Your Price (₹)") },
-                            placeholder = { Text("e.g. 3500000") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(14.dp)
-                        )
-
-                        OutlinedTextField(
-                            value = marketEstimateText,
-                            onValueChange = { marketEstimateText = it },
-                            label = { Text("Market Estimate (₹)") },
-                            placeholder = { Text("e.g. 4000000") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(14.dp)
-                        )
-                    }
-
-                    if (savings > 0) {
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = UrgencyFlameContainer,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(Icons.Default.LocalFireDepartment, null, tint = UrgencyFlame, modifier = Modifier.size(18.dp))
-                                Text(
-                                    text = "🔥 High Opportunity Deal: ₹${savings / 100000.0} Lakhs below market estimate!",
-                                    color = UrgencyFlame,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // 4. LOCATION & PRIVACY SAFEGUARD (Section 18)
-        item {
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
-            ) {
-                Column(
-                    modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text(
-                        text = "📍 Location & Privacy Safeguard",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        listOf("Kottakuppam", "Pondicherry", "Auroville", "Serenity Beach").forEach { loc ->
-                            val isSel = location == loc
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
-                                    .clickable { location = loc }
-                                    .padding(vertical = 8.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = loc,
-                                    fontSize = 11.sp,
-                                    fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isSel) Color.White else TextPrimary
-                                )
-                            }
-                        }
-                    }
-
-                    // Privacy Switch
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "🛡️ Approximate Location (~500m)",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextPrimary
-                            )
-                            Text(
-                                text = "Hides exact house address publicly until visit request is accepted",
-                                fontSize = 11.sp,
-                                color = TextSecondary
-                            )
-                        }
-                        Switch(
-                            checked = protectPrivacy,
-                            onCheckedChange = { protectPrivacy = it },
-                            colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colorScheme.primary)
-                        )
-                    }
-                }
-            }
-        }
-
-                // 4b. PROPERTY PHOTOS & CLOUD STORAGE UPLOAD
-        item {
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
-            ) {
-                Column(
-                    modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text(
-                        text = "ðŸ“¸ Property Photographs",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
-                    )
-                    Text(
-                        text = "Add real property photos to build buyer trust and increase urgent match scores",
-                        fontSize = 12.sp,
-                        color = TextSecondary
-                    )
-
-                    if (selectedImageUri != null) {
-                        // Selected Photo Preview Card
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(180.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(14.dp))
-                        ) {
-                            AsyncImage(
-                                model = selectedImageUri,
-                                contentDescription = "Selected property photo",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                            )
-                            // Remove / Change button
-                            Surface(
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .padding(8.dp)
-                                    .clip(CircleShape)
-                                    .clickable { selectedImageUri = null },
-                                color = Color.Black.copy(alpha = 0.65f),
-                                shape = CircleShape
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = "Remove photo",
-                                    tint = Color.White,
-                                    modifier = Modifier.padding(6.dp).size(18.dp)
-                                )
-                            }
-                        }
-                    } else {
-                        // Upload Action Box
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(110.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .border(
-                                    width = 1.dp,
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                                    shape = RoundedCornerShape(14.dp)
-                                )
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.05f))
-                                .clickable { photoPickerLauncher.launch("image/*") }
-                                .padding(14.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.AddPhotoAlternate,
-                                    contentDescription = "Add photo",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(28.dp)
-                                )
-                                Column {
-                                    Text(
-                                        text = "Upload Property Photo",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 14.sp,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Text(
-                                        text = "Select from Gallery or Camera â€¢ Auto uploaded to Cloud",
-                                        fontSize = 11.sp,
-                                        color = TextSecondary
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // 5. FEATURES CHECKLIST
-        item {
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
-            ) {
-                Column(
-                    modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "✨ Property Amenities",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
-                    )
-
-                    availableFeatures.chunked(2).forEach { rowFeatures ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            rowFeatures.forEach { feature ->
-                                val isChecked = selectedFeatures.value.contains(feature)
-                                Row(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clickable {
-                                            val current = selectedFeatures.value.toMutableSet()
-                                            if (isChecked) current.remove(feature) else current.add(feature)
-                                            selectedFeatures.value = current
-                                        },
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Checkbox(
-                                        checked = isChecked,
-                                        onCheckedChange = {
-                                            val current = selectedFeatures.value.toMutableSet()
-                                            if (isChecked) current.remove(feature) else current.add(feature)
-                                            selectedFeatures.value = current
-                                        },
-                                        colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
-                                    )
-                                    Text(text = feature, fontSize = 12.sp, color = TextPrimary)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // 6. SUBMIT & TRIGGER QUICKMATCH BUTTON
-        item {
-            Button(
-                onClick = {
-                    val finalPrice = priceText.toLongOrNull() ?: 3200000L
-                    val finalMarket = marketEstimateText.toLongOrNull() ?: finalPrice
-                    val finalTitle = title.ifBlank { "Urgent ${propertyType} in $location" }
-                    val finalDesc = description.ifBlank { "Prime property with all verified amenities, direct road access, and clear title documentation." }
-
-                    onPostProperty(
-                        finalTitle,
-                        finalDesc,
-                        selectedCategory,
-                        propertyType,
-                        finalPrice,
-                        finalMarket,
-                        location,
-                        bedrooms.toIntOrNull() ?: 2,
-                        bathrooms.toIntOrNull() ?: 2,
-                        areaSqFt.toIntOrNull() ?: 1200,
-                        selectedSpeed,
-                        selectedFeatures.value.toList(),
-                        isPrivateListing,
-                        selectedImageUri
-                    )
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp)
-                    .testTag("submit_post_property_button"),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (selectedSpeed == SellingSpeed.URGENT) UrgencyFlame else MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Icon(Icons.Default.ElectricBolt, contentDescription = null, tint = Color.White)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Post & Trigger QuickMatch Engine",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            }
-        }
-    }
-}
+@Composable private fun FormCard(title: String, content: @Composable ColumnScope.() -> Unit) = Card(shape = RoundedCornerShape(20.dp), border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) { Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) { Text(title, fontWeight = FontWeight.Bold, color = TextPrimary); content() } }
+@Composable private fun Field(value: String, onChange: (String) -> Unit, label: String, placeholder: String = "", lines: Int = 1, keyboard: KeyboardType = KeyboardType.Text) = OutlinedTextField(value, onChange, { Text(label) }, placeholder = { Text(placeholder) }, minLines = lines, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = keyboard), modifier = Modifier.fillMaxWidth())
+@Composable private fun PairFields(l1: String, v1: String, c1: (String) -> Unit, l2: String, v2: String, c2: (String) -> Unit, numeric: Boolean = true) = Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { OutlinedTextField(v1, c1, { Text(l1) }, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = if (numeric) KeyboardType.Number else KeyboardType.Text), modifier = Modifier.weight(1f)); OutlinedTextField(v2, c2, { Text(l2) }, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = if (numeric) KeyboardType.Number else KeyboardType.Text), modifier = Modifier.weight(1f)) }
+@Composable private fun CategorySelector(selected: PropertyCategory, onSelect: (PropertyCategory) -> Unit) = Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf(PropertyCategory.RENT, PropertyCategory.BUY, PropertyCategory.LEASE).forEach { category -> val active = category == selected; Box(Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant).clickable { onSelect(category) }.padding(vertical = 10.dp), contentAlignment = Alignment.Center) { Text(category.label, color = if (active) Color.White else TextPrimary, fontWeight = FontWeight.Bold) } } }
+@Composable private fun Choice(label: String, values: List<String>, selected: String, onSelect: (String) -> Unit) = Column { Text(label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary); values.chunked(3).forEach { row -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) { row.forEach { value -> Box(Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).background(if (value == selected) MaterialTheme.colorScheme.primary.copy(.14f) else MaterialTheme.colorScheme.surfaceVariant).clickable { onSelect(value) }.padding(8.dp), contentAlignment = Alignment.Center) { Text(value, fontSize = 11.sp, color = TextPrimary) } } } } }
+@Composable private fun MultiChoice(values: List<String>, selected: Set<String>, onChange: (Set<String>) -> Unit) = Column { values.forEach { value -> Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(value in selected, { checked -> onChange(if (checked) selected + value else selected - value) }); Text(value, fontSize = 13.sp, color = TextPrimary) } } }

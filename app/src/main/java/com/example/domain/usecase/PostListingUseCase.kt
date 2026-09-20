@@ -23,9 +23,17 @@ data class PostListingParams(
     val bathrooms: Int,
     val areaSqFt: Int,
     val features: List<String>,
+    val furnishing: String = "",
+    val securityDeposit: Long = 0L,
+    val maintenanceAmount: Long = 0L,
+    val isMaintenanceIncluded: Boolean = false,
+    val availableFrom: String = "",
+    val nearbyLandmark: String = "",
+    val tenantPreferences: List<String> = emptyList(),
     val isPrivate: Boolean = false,
     val customImageResName: String? = null,
-    val imageUri: Uri? = null
+    val imageUri: Uri? = null,
+    val imageUris: List<Uri> = emptyList()
 )
 
 /**
@@ -73,16 +81,7 @@ class PostListingUseCase(
 
         val propId = "prop-${System.currentTimeMillis()}"
 
-        // Upload custom photo if URI provided and storage service available
-        val uploadedImageUrl = if (params.imageUri != null && storageService != null && context != null) {
-            storageService.uploadPropertyPhoto(propId, params.imageUri, context).getOrNull()
-        } else null
-
-        val finalImageName = uploadedImageUrl
-            ?: params.customImageResName
-            ?: fallbackImage
-
-        val newProperty = Property(
+        val initialProperty = Property(
             id = propId,
             ownerId = uid,
             title = params.title.trim(),
@@ -102,23 +101,51 @@ class PostListingUseCase(
             areaSqFt = params.areaSqFt,
             urgencyScore = urgencyScore,
             verificationLevel = 0, // Unverified draft/pending review - client NEVER self-approves!
-            imageResName = finalImageName,
+            imageResName = params.customImageResName ?: fallbackImage,
+            furnishing = params.furnishing,
+            securityDeposit = params.securityDeposit,
+            maintenanceAmount = params.maintenanceAmount,
+            isMaintenanceIncluded = params.isMaintenanceIncluded,
+            availableFrom = params.availableFrom,
+            nearbyLandmark = params.nearbyLandmark,
+            tenantPreferences = params.tenantPreferences,
             featuresList = params.features,
             ownerName = currentUser?.displayName?.ifBlank { "Property Owner" } ?: "Property Owner",
-            ownerPhone = currentUser?.phone?.ifBlank { "" } ?: "",
+            // Contact information belongs to the private profile, not a public listing.
+            ownerPhone = "",
             ownerType = currentUser?.role?.name?.replace("_", " ")?.lowercase()?.replaceFirstChar { it.uppercase() } ?: "Owner",
             isPrivate = params.isPrivate,
             viewsCount = 0,
             savedCount = 0,
             messagesCount = 0,
             visitRequestsCount = 0,
-            interestedBuyersCount = 0
+            interestedBuyersCount = 0,
+            status = "Pending Review"
         )
 
-        repository.addProperty(newProperty)
+        // Create the pending listing first. Firebase Storage then authorizes each upload
+        // using this owner-bound Firestore document.
+        repository.addProperty(initialProperty)
+
+        val requestedUris = (params.imageUris + listOfNotNull(params.imageUri)).distinct()
+        val uploadedUrls = if (requestedUris.isNotEmpty() && storageService != null && context != null) {
+            storageService.uploadPropertyPhotos(propId, requestedUris, context).getOrElse { uploadError ->
+                // Do not leave a misleading, photo-less pending listing behind when
+                // the user explicitly selected photos and their upload fails.
+                runCatching { repository.deleteProperty(propId) }
+                throw uploadError
+            }
+        } else {
+            emptyList()
+        }
+        val newProperty = initialProperty.copy(
+            imageUrls = uploadedUrls,
+            imageResName = uploadedUrls.firstOrNull() ?: initialProperty.imageResName
+        )
+        if (uploadedUrls.isNotEmpty()) repository.updateProperty(newProperty)
         notificationRepository?.sendNotification(
-            title = "Listing Published! 🏡",
-            message = "'${newProperty.title}' is now live on QuickNest with direct inquiries enabled.",
+            title = "Listing submitted for review",
+            message = "'${newProperty.title}' is pending review. We will notify you when it is ready to appear on Ren.",
             type = com.example.data.model.NotificationType.NEW_LISTING,
             propertyId = newProperty.id,
             targetLocation = newProperty.location,

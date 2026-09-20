@@ -46,7 +46,8 @@ class HomeViewModel(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
-    private val _selectedCategory = MutableStateFlow(PropertyCategory.ALL)
+    // Ren v1 opens on rentals; buy and lease remain opt-in discovery paths.
+    private val _selectedCategory = MutableStateFlow(PropertyCategory.RENT)
     val selectedCategory: StateFlow<PropertyCategory> = _selectedCategory.asStateFlow()
 
     private val _selectedPropertyType = MutableStateFlow<String?>(null)
@@ -77,7 +78,7 @@ class HomeViewModel(
     val maxPrice: StateFlow<Long?> = _maxPrice.asStateFlow()
 
     private val _recentSearches = MutableStateFlow(
-        listOf("Pondicherry", "Kottakuppam", "East Coast Villa", "Under 50 Lakhs", "Urgent Plot")
+        listOf("Kottakuppam rentals", "Pondicherry 2 BHK", "Homes under ₹20,000", "Pet-friendly rentals")
     )
     val recentSearches: StateFlow<List<String>> = _recentSearches.asStateFlow()
 
@@ -247,7 +248,7 @@ class HomeViewModel(
     }
 
     fun resetFilters() {
-        _selectedCategory.value = PropertyCategory.ALL
+        _selectedCategory.value = PropertyCategory.RENT
         _selectedPropertyType.value = null
         _selectedLocation.value = "All"
         _selectedBudget.value = BudgetFilter.ALL

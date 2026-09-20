@@ -119,7 +119,7 @@ fun IndiaLocationPickerDialog(
         }
         val lower = clean.lowercase()
         if (foreignList.any { lower == it || lower.contains(" $it") || lower.contains("$it ") }) {
-            locationError = "Ren is currently available exclusively in India 🇮🇳. Foreign country listings are not supported."
+            locationError = "Ren is currently available exclusively in India. Foreign country listings are not supported."
             return
         }
         onLocationSelected(clean)
@@ -156,11 +156,11 @@ fun IndiaLocationPickerDialog(
                             .background(Color(0xFFF1F5F9)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = "🇮🇳", fontSize = 18.sp)
+                        Text(text = "India", fontSize = 14.sp)
                     }
                     Column {
                         Text(
-                            text = "Select Location (India 🇮🇳)",
+                            text = "Select location in India",
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold,
                             color = NavyPrimary

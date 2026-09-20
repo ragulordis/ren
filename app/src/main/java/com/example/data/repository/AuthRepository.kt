@@ -145,6 +145,7 @@ class AuthRepositoryImpl(
                                 val profile = fetchOrCreateUserProfile(user)
                                 sharedUserProfile = profile
                                 _sharedAuthState.value = AuthState.SignedIn(profile)
+                                com.example.data.remote.DeviceRegistration.register(profile.uid)
                             } catch (e: Exception) {
                                 Log.e("AuthRepository", "Error resolving user profile: ${e.message}", e)
                                 _sharedAuthState.value = AuthState.Error("Failed to synchronize user profile", e)
@@ -311,21 +312,16 @@ class AuthRepositoryImpl(
 
     override suspend fun deleteAccount(): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
-            val user = firebaseAuth?.currentUser
-            if (user != null) {
-                val uid = user.uid
-                val db = firestore
-                if (db != null) {
-                    runCatching {
-                        db.collection("users").document(uid)
-                            .collection("private").document("profile")
-                            .delete().await()
-                    }
-                }
-                user.delete().await()
-            }
+            val user = firebaseAuth?.currentUser ?: throw NotAuthenticatedException()
+            // Server-side deletion removes all account-owned Firestore, Storage and
+            // Auth data atomically from the user's perspective.
+            com.google.firebase.functions.FirebaseFunctions.getInstance()
+                .getHttpsCallable("deleteAccount")
+                .call().await()
             sharedUserProfile = null
             _sharedAuthState.value = AuthState.SignedOut
+            // The backend deletes Auth; this clears any cached client session.
+            firebaseAuth?.signOut()
             Unit
         }
     }
@@ -372,6 +368,9 @@ class AuthRepositoryImpl(
     private val pendingOtps = java.util.concurrent.ConcurrentHashMap<String, String>()
 
     override suspend fun sendBuyerPhoneOtp(phoneNumber: String): Result<String> = withContext(Dispatchers.IO) {
+        // Ren v1 deliberately does not simulate identity verification. Wire this to
+        // Firebase Phone Auth or a verified provider before exposing it again.
+        return@withContext Result.failure(UnsupportedOperationException("Phone verification is not available in this release"))
         runCatching {
             val digits = phoneNumber.filter { it.isDigit() }
             require(digits.length >= 10) { "Please enter a valid 10-digit mobile number" }
@@ -386,12 +385,13 @@ class AuthRepositoryImpl(
         phoneNumber: String,
         otp: String
     ): Result<UserProfile> = withContext(Dispatchers.IO) {
+        return@withContext Result.failure(UnsupportedOperationException("Buyer verification is not available in this release"))
         runCatching {
             val digits = phoneNumber.filter { it.isDigit() }
             val storedOtp = pendingOtps[digits]
             val cleanOtp = otp.trim()
 
-            val isValid = (storedOtp != null && cleanOtp == storedOtp) || cleanOtp == "123456" || cleanOtp == "849201"
+            val isValid = storedOtp != null && cleanOtp == storedOtp
             if (!isValid) {
                 throw IllegalArgumentException("Invalid 6-digit OTP. Please enter the correct code.")
             }
@@ -438,6 +438,7 @@ class AuthRepositoryImpl(
         idNumber: String,
         legalName: String
     ): Result<UserProfile> = withContext(Dispatchers.IO) {
+        return@withContext Result.failure(UnsupportedOperationException("Government ID verification is not available in this release"))
         runCatching {
             require(idType.isNotBlank()) { "ID Type is required" }
             require(idNumber.trim().length >= 4) { "Valid document number is required" }
@@ -483,6 +484,7 @@ class AuthRepositoryImpl(
         institution: String,
         proofType: String
     ): Result<UserProfile> = withContext(Dispatchers.IO) {
+        return@withContext Result.failure(UnsupportedOperationException("Financial verification is not available in this release"))
         runCatching {
             require(budgetRange.isNotBlank()) { "Budget range is required" }
             val current = currentUser() ?: UserProfile(
@@ -521,6 +523,7 @@ class AuthRepositoryImpl(
     override suspend fun verifyBuyerSelfie(
         photoUri: String?
     ): Result<UserProfile> = withContext(Dispatchers.IO) {
+        return@withContext Result.failure(UnsupportedOperationException("Biometric verification is not available in this release"))
         runCatching {
             val current = currentUser() ?: UserProfile(
                 uid = firebaseAuth?.currentUser?.uid ?: "user_${System.currentTimeMillis()}",

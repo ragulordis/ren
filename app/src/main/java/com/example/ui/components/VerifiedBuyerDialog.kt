@@ -588,7 +588,7 @@ private fun PhoneOtpVerificationSection(
                         modifier = Modifier.padding(bottom = 0.dp)
                     ) {
                         Text(
-                            text = "🇮🇳 +91",
+                            text = "+91",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 14.dp)
@@ -658,7 +658,7 @@ private fun PhoneOtpVerificationSection(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Text(text = "📲", fontSize = 16.sp)
+                                Text(text = "SMS", fontSize = 12.sp)
                                 Text(
                                     text = "SMS Sent to $phoneNumber",
                                     fontSize = 12.sp,

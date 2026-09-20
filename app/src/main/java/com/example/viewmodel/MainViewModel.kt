@@ -155,7 +155,7 @@ class MainViewModel(
             val result = sendChatMessageUseCase.sendMessage(currentProp.id, text)
             result.onSuccess {
                 notificationRepository?.sendNotification(
-                    title = "Inquiry Sent 💬",
+                    title = "Inquiry sent",
                     message = "Message sent for '${currentProp.title}': \"${text.take(35)}\"",
                     type = NotificationType.CHAT_MESSAGE,
                     propertyId = currentProp.id,
@@ -214,7 +214,7 @@ class MainViewModel(
             result.onSuccess {
                 showFeedback("Visit scheduled for $date at $timeSlot")
                 notificationRepository?.sendNotification(
-                    title = "Site Visit Scheduled 📅",
+                    title = "Site visit scheduled",
                     message = "Visit requested for '${property.title}' on $date at $timeSlot.",
                     type = NotificationType.VISIT_UPDATE,
                     propertyId = property.id,
@@ -241,6 +241,14 @@ class MainViewModel(
             propertyRepository.reportProperty(property.id, property.title, reason, details)
             showFeedback("Report submitted for review")
             closeReport()
+        }
+    }
+
+    fun blockPropertyOwner(property: Property) {
+        viewModelScope.launch {
+            runCatching { propertyRepository.blockUser(property.ownerId) }
+                .onSuccess { showFeedback("User blocked. You will no longer be able to start conversations with this owner.") }
+                .onFailure { showFeedback("Could not block user: ${it.message}") }
         }
     }
 

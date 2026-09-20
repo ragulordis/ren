@@ -4,6 +4,7 @@
       "collectionGroup": "properties",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "moderationStatus", "order": "ASCENDING" },
         { "fieldPath": "location", "order": "ASCENDING" },
         { "fieldPath": "price", "order": "ASCENDING" }
       ]
@@ -12,6 +13,7 @@
       "collectionGroup": "properties",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "moderationStatus", "order": "ASCENDING" },
         { "fieldPath": "location", "order": "ASCENDING" },
         { "fieldPath": "propertyType", "order": "ASCENDING" },
         { "fieldPath": "price", "order": "ASCENDING" }

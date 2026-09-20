@@ -1,11 +1,16 @@
 package com.example
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
@@ -41,6 +46,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import com.example.ui.theme.NavyPrimary
 import com.example.ui.theme.BlueCorporate
 import com.example.ui.theme.AccentGold
@@ -154,6 +161,10 @@ fun QuickNestApp(
     savedViewModel: SavedViewModel = koinViewModel(),
     profileViewModel: ProfileViewModel = koinViewModel()
 ) {
+    val context = LocalContext.current
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* The app continues normally when notifications are declined. */ }
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -199,6 +210,17 @@ fun QuickNestApp(
                 duration = SnackbarDuration.Short
             )
             mainViewModel.clearFeedbackMessage()
+        }
+    }
+
+    // Android 13+ requires a runtime grant before FCM notifications can be
+    // displayed. Ask only after an authenticated user reaches the app.
+    LaunchedEffect(isLoggedIn) {
+        if (
+            isLoggedIn && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 
@@ -325,7 +347,7 @@ fun QuickNestApp(
                                 }
                             }
                             Text(
-                                text = "Find Your Place • Real Estate India 🇮🇳",
+                                text = "Find Your Place • Real Estate India",
                                 fontSize = 10.sp,
                                 color = SlateSecondaryText,
                                 fontWeight = FontWeight.Medium
@@ -472,7 +494,7 @@ fun QuickNestApp(
                     },
                     text = {
                         Text(
-                            "Sell Fast",
+                            "Post Rental",
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
@@ -523,7 +545,8 @@ fun QuickNestApp(
             },
             onOpenReport = {
                 mainViewModel.openReport(prop)
-            }
+            },
+            onBlockOwner = { mainViewModel.blockPropertyOwner(prop) }
         )
     }
 
@@ -540,9 +563,6 @@ fun QuickNestApp(
             property = prop,
             onStartChat = { initialMsg ->
                 mainViewModel.startChatFromContactSeller(prop, initialMsg)
-            },
-            onSendEmailInquiry = { subject, message, buyerEmail, buyerPhone ->
-                mainViewModel.sendEmailInquiry(prop, subject, message, buyerEmail, buyerPhone)
             },
             onDismiss = { mainViewModel.closeContactSeller() }
         )

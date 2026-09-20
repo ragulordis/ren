@@ -191,12 +191,12 @@ fun FilterBottomSheet(
             ) {
                 val types = listOf(
                     "All" to "✨ All Types",
-                    "Apartment" to "🏢 Apartment",
-                    "Villa" to "🏡 Villa",
-                    "Studio" to "🛋️ Studio",
-                    "House" to "🏠 House",
-                    "Plot / Land" to "🌳 Plot / Land",
-                    "Commercial" to "🏬 Commercial"
+                    "Apartment" to "Apartment",
+                    "Villa" to "Villa",
+                    "Studio" to "Studio",
+                    "House" to "House",
+                    "Plot / Land" to "Plot / Land",
+                    "Commercial" to "Commercial"
                 )
                 types.forEach { (typeKey, label) ->
                     val isSelected = (selectedPropertyType == null && typeKey == "All") || (selectedPropertyType == typeKey)
@@ -336,7 +336,7 @@ fun FilterBottomSheet(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "🛡️ Verified Sellers Only",
+                                text = "Verified sellers only",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = TextPrimary

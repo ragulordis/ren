@@ -514,7 +514,7 @@ fun UrgentPropertyCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "🔥 HIGH OPPORTUNITY • 95% MATCH",
+                    text = "HIGH OPPORTUNITY • 95% MATCH",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color(0xFFFB923C),

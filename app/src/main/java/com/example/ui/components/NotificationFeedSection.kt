@@ -65,7 +65,7 @@ fun NotificationFeedSection(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(
-                        text = "🔔",
+                        text = "",
                         fontSize = 16.sp
                     )
                     Text(

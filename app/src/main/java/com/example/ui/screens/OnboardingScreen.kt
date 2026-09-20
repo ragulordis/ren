@@ -86,9 +86,9 @@ fun OnboardingScreen(
     val pages = listOf(
         OnboardingPageData(
             title = "Pan-India Real Estate Network",
-            highlightSubtitle = "Search Homes & Plots Across India 🇮🇳",
+            highlightSubtitle = "Search homes and plots across India",
             description = "Explore curated verified houses, luxury apartments, urgent plots, and commercial spaces across all Indian cities and metro corridors.",
-            badgeText = "PAN-INDIA COVERAGE 🇮🇳",
+            badgeText = "PAN-INDIA COVERAGE",
             icon = Icons.Default.LocationCity,
             keyFeatures = listOf(
                 "Bengaluru, Mumbai, Chennai, Delhi NCR & all Indian hubs",
@@ -110,7 +110,7 @@ fun OnboardingScreen(
         ),
         OnboardingPageData(
             title = "Scam Shield & Direct Connect",
-            highlightSubtitle = "Verified Listings & Instant Visit Booking 🛡️",
+            highlightSubtitle = "Listings and instant visit booking",
             description = "Every listing passes strict document screening. Chat directly with landlords and book on-site inspection slots with one tap.",
             badgeText = "REN TRUST & VERIFIED",
             icon = Icons.Default.Security,

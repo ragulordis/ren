@@ -3,7 +3,11 @@ service firebase.storage {
   match /b/{bucket}/o {
     // Only authenticated property owners can upload listing images
     match /property_images/{propertyId}/{allPaths=**} {
-      allow read: if true;
+      // Pending or rejected listing media must not be publicly enumerable. The
+      // owner can still preview it while the listing is under review.
+      allow read: if firestore.get(/databases/(default)/documents/properties/$(propertyId)).data.moderationStatus == 'ACTIVE'
+                  || (request.auth != null
+                      && firestore.get(/databases/(default)/documents/properties/$(propertyId)).data.ownerId == request.auth.uid);
       allow write: if request.auth != null
                    && request.resource.size < 10 * 1024 * 1024
                    && request.resource.contentType.matches('image/(jpeg|jpg|png|webp)')
@@ -11,7 +15,9 @@ service firebase.storage {
     }
 
     match /properties/{propertyId}/{allPaths=**} {
-      allow read: if true;
+      allow read: if firestore.get(/databases/(default)/documents/properties/$(propertyId)).data.moderationStatus == 'ACTIVE'
+                  || (request.auth != null
+                      && firestore.get(/databases/(default)/documents/properties/$(propertyId)).data.ownerId == request.auth.uid);
       allow write: if request.auth != null
                    && request.resource.size < 10 * 1024 * 1024
                    && request.resource.contentType.matches('image/(jpeg|jpg|png|webp)')

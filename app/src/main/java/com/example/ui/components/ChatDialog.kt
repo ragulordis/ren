@@ -113,7 +113,7 @@ fun ChatDialog(
                             }
                         ) {
                             Text(
-                                text = "📅 Book Visit",
+                                text = "Book visit",
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,

@@ -47,6 +47,14 @@ class FirestoreService {
                 urgencyScore = doc.getLong("urgencyScore")?.toInt() ?: 0,
                 verificationLevel = doc.getLong("verificationLevel")?.toInt() ?: 0,
                 imageResName = doc.getString("imageResName") ?: "",
+                imageUrls = (doc.get("imageUrls") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+                furnishing = doc.getString("furnishing") ?: "",
+                securityDeposit = doc.getLong("securityDeposit") ?: 0L,
+                maintenanceAmount = doc.getLong("maintenanceAmount") ?: 0L,
+                isMaintenanceIncluded = doc.getBoolean("isMaintenanceIncluded") ?: false,
+                availableFrom = doc.getString("availableFrom") ?: "",
+                nearbyLandmark = doc.getString("nearbyLandmark") ?: "",
+                tenantPreferences = (doc.get("tenantPreferences") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                 featuresList = (doc.get("featuresList") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                 suitableFor = doc.getString("suitableFor") ?: "All",
                 leaseDurationMonths = doc.getLong("leaseDurationMonths")?.toInt(),
@@ -74,7 +82,9 @@ class FirestoreService {
      */
     suspend fun fetchPropertiesOnce(): List<Property> {
         val db = firestore ?: throw IllegalStateException("Firestore not initialized")
-        val snapshot = db.collection("properties").get().await()
+        val snapshot = db.collection("properties")
+            .whereEqualTo("moderationStatus", "ACTIVE")
+            .get().await()
         return snapshot.documents.mapNotNull { parseDocToProperty(it) }
     }
 
@@ -89,6 +99,7 @@ class FirestoreService {
         }
 
         val listener = db.collection("properties")
+            .whereEqualTo("moderationStatus", "ACTIVE")
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     Log.w("FirestoreService", "Listen failed: ${error.message}")
@@ -114,6 +125,9 @@ class FirestoreService {
     suspend fun querySmartMatchProperties(preferences: UserPreferences): List<Property> = runCatching {
         val db = firestore ?: return@runCatching emptyList()
         val collection = db.collection("properties")
+        // Firestore rules intentionally permit public collection queries only for
+        // moderator-approved listings, so every marketplace query includes this.
+        val activeCollection = collection.whereEqualTo("moderationStatus", "ACTIVE")
 
         val hasLocation = preferences.location.isNotBlank() &&
                 !preferences.location.equals("All", ignoreCase = true) &&
@@ -126,7 +140,7 @@ class FirestoreService {
         val hasBudget = preferences.maxBudget > 0L && preferences.maxBudget < Long.MAX_VALUE
 
         val candidateDocs = runCatching {
-            var q: Query = collection
+            var q: Query = activeCollection
 
             if (hasLocation) {
                 q = q.whereEqualTo("location", preferences.location)
@@ -144,15 +158,15 @@ class FirestoreService {
             Log.w("FirestoreService", "Targeted query failed (${error.message}), applying secondary Firestore query")
             runCatching {
                 if (hasLocation) {
-                    collection.whereEqualTo("location", preferences.location).get().await().documents
+                    activeCollection.whereEqualTo("location", preferences.location).get().await().documents
                 } else if (hasBudget) {
                     val upperLimit = (preferences.maxBudget * 1.25).toLong()
-                    collection.whereLessThanOrEqualTo("price", upperLimit).get().await().documents
+                    activeCollection.whereLessThanOrEqualTo("price", upperLimit).get().await().documents
                 } else {
-                    collection.get().await().documents
+                    activeCollection.get().await().documents
                 }
             }.getOrElse {
-                runCatching { collection.get().await().documents }.getOrDefault(emptyList())
+                runCatching { activeCollection.get().await().documents }.getOrDefault(emptyList())
             }
         }
 
@@ -161,7 +175,7 @@ class FirestoreService {
         // If strict query yielded fewer than 3 properties, supplement with broader Firestore properties
         // so the Smart Match algorithm can score and surface best alternatives
         if (parsedProperties.size < 3) {
-            val allSnapshot = runCatching { collection.limit(20).get().await() }.getOrNull()
+            val allSnapshot = runCatching { activeCollection.limit(20).get().await() }.getOrNull()
             val allDocs = allSnapshot?.documents?.mapNotNull { parseDocToProperty(it) } ?: emptyList()
             (parsedProperties + allDocs).distinctBy { it.id }
         } else {
@@ -175,9 +189,9 @@ class FirestoreService {
     /**
      * Upload or update a property in Firestore
      */
-    suspend fun saveProperty(property: Property): Result<Unit> = runCatching {
+    suspend fun saveProperty(property: Property, isNewListing: Boolean = false): Result<Unit> = runCatching {
         val db = firestore ?: throw IllegalStateException("Firestore not initialized")
-        val data = hashMapOf(
+        val data = hashMapOf<String, Any?>(
             "id" to property.id,
             "ownerId" to property.ownerId,
             "title" to property.title,
@@ -198,12 +212,19 @@ class FirestoreService {
             "urgencyScore" to property.urgencyScore,
             "verificationLevel" to property.verificationLevel,
             "imageResName" to property.imageResName,
+            "imageUrls" to property.imageUrls,
+            "furnishing" to property.furnishing,
+            "securityDeposit" to property.securityDeposit,
+            "maintenanceAmount" to property.maintenanceAmount,
+            "isMaintenanceIncluded" to property.isMaintenanceIncluded,
+            "availableFrom" to property.availableFrom,
+            "nearbyLandmark" to property.nearbyLandmark,
+            "tenantPreferences" to property.tenantPreferences,
             "featuresList" to property.featuresList,
             "suitableFor" to property.suitableFor,
             "leaseDurationMonths" to property.leaseDurationMonths,
             "isDepositRefundable" to property.isDepositRefundable,
             "ownerName" to property.ownerName,
-            "ownerPhone" to property.ownerPhone,
             "ownerType" to property.ownerType,
             "viewsCount" to property.viewsCount,
             "savedCount" to property.savedCount,
@@ -216,6 +237,7 @@ class FirestoreService {
             "status" to property.status,
             "updatedAt" to System.currentTimeMillis()
         )
+        if (isNewListing) data["moderationStatus"] = "PENDING"
         db.collection("properties").document(property.id)
             .set(data, SetOptions.merge())
             .await()
@@ -382,6 +404,17 @@ class FirestoreService {
             "createdAt" to System.currentTimeMillis()
         )
         db.collection("reports").document(reportId).set(data, SetOptions.merge()).await()
+    }
+
+    suspend fun blockUser(blockedUserId: String): Result<Unit> = runCatching {
+        require(blockedUserId.isNotBlank()) { "A user is required" }
+        val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+            ?: throw IllegalStateException("Sign in required")
+        require(currentUid != blockedUserId) { "You cannot block yourself" }
+        firestore!!.collection("users").document(currentUid).collection("blocks")
+            .document(blockedUserId)
+            .set(mapOf("blockedAt" to System.currentTimeMillis()))
+            .await()
     }
 
     /**

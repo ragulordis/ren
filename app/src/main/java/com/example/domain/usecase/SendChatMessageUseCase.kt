@@ -77,7 +77,7 @@ class SendChatMessageUseCase(
             propertyId = property.id,
             senderId = myId,
             senderName = senderLabel,
-            message = "📧 Formal Email Inquiry Sent:\nSubject: $subject\n\n$messageBody\n\nContact: $buyerPhone | $buyerEmail",
+            message = "Formal email inquiry sent:\nSubject: $subject\n\n$messageBody\n\nContact: $buyerPhone | $buyerEmail",
             time = "Just now",
             isFromMe = true
         )

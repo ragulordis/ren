@@ -186,7 +186,7 @@ fun LoginScreen(
             )
 
             Text(
-                text = "FIND YOUR PLACE • REAL ESTATE INDIA 🇮🇳",
+                text = "FIND YOUR PLACE • REAL ESTATE INDIA",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp,
@@ -327,9 +327,9 @@ fun LoginScreen(
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             listOf(
-                                UserRole.BUYER to "🏠 Find a Home",
-                                UserRole.INVESTOR to "📈 Invest",
-                                UserRole.OWNER to "🏷️ Sell Property"
+                                UserRole.BUYER to "Find a Home",
+                                UserRole.INVESTOR to "Invest",
+                                UserRole.OWNER to "List Property"
                             ).forEach { (role, label) ->
                                 val isSelected = selectedRole == role
                                 Surface(
@@ -631,7 +631,7 @@ fun LoginScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text(text = "🇮🇳", fontSize = 20.sp)
+                    Text(text = "India", fontSize = 14.sp)
                     Column {
                         Text(
                             text = "Available Across All Indian Cities",

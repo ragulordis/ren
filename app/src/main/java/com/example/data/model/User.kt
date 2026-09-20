@@ -49,11 +49,11 @@ data class UserProfile(
 
     val verifiedBadgeText: String
         get() = when (verificationLevel) {
-            4 -> "⭐ Elite Verified Buyer"
-            3 -> "💰 Pre-Approved Buyer"
-            2 -> "🛡️ ID Verified Buyer"
-            1 -> "📱 Phone Verified Buyer"
-            else -> if (isPhoneVerified) "📱 Phone Verified Buyer" else "Unverified Buyer"
+            4 -> "Verified buyer"
+            3 -> "Verified buyer"
+            2 -> "Verified buyer"
+            1 -> "Verified buyer"
+            else -> if (isPhoneVerified) "Verified buyer" else "Unverified buyer"
         }
 }
 

@@ -407,7 +407,7 @@ fun PropertyListContent(
                                 FilterChip(
                                     selected = true,
                                     onClick = onToggleUrgentOnly,
-                                    label = { Text("🔥 Urgent Only ✕", fontSize = 11.sp) },
+                                    label = { Text("Urgent only ✕", fontSize = 11.sp) },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = UrgencyFlame.copy(alpha = 0.2f),
                                         selectedLabelColor = UrgencyFlame

@@ -318,6 +318,7 @@ private fun HomeScreenContent(
 ) {
 
     var showLocationPicker by remember { mutableStateOf(false) }
+    val featuredRentalProperties = filteredProperties.filter { it.category == PropertyCategory.RENT || it.listingType == com.example.data.model.ListingType.RENT }
     val locationsList = listOf(
         "All Locations", "Chennai", "Bengaluru", "Mumbai", "Delhi NCR",
         "Hyderabad", "Pune", "Kochi", "Goa", "Pondicherry", "Kottakuppam",
@@ -377,7 +378,7 @@ private fun HomeScreenContent(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "${currentUserProfile?.displayName?.ifBlank { "Explorer" } ?: "Explorer"} 👋",
+                            text = currentUserProfile?.displayName?.ifBlank { "Explorer" } ?: "Explorer",
                             fontSize = 21.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -411,7 +412,7 @@ private fun HomeScreenContent(
                             )
                         }
                         Text(
-                            text = "INDIA 🇮🇳",
+                            text = "INDIA",
                             fontSize = 9.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.SemiBold,
@@ -451,12 +452,12 @@ private fun HomeScreenContent(
                 ) {
                     val propertyTypeItems = listOf(
                         Triple("All", "All Types", "✨"),
-                        Triple("Apartment", "Apartment", "🏢"),
-                        Triple("Villa", "Villa", "🏡"),
-                        Triple("Studio", "Studio", "🛋️"),
-                        Triple("House", "House", "🏠"),
-                        Triple("Plot / Land", "Plot / Land", "🌳"),
-                        Triple("Commercial", "Commercial", "🏬")
+                        Triple("Apartment", "Apartment", ""),
+                        Triple("Villa", "Villa", ""),
+                        Triple("Studio", "Studio", ""),
+                        Triple("House", "House", ""),
+                        Triple("Plot / Land", "Plot / Land", ""),
+                        Triple("Commercial", "Commercial", "")
                     )
 
                     propertyTypeItems.forEach { (typeKey, label, emoji) ->
@@ -594,7 +595,7 @@ private fun HomeScreenContent(
                             FilterChip(
                                 selected = true,
                                 onClick = { onSetVerifiedOnly(false) },
-                                label = { Text("🛡️ Verified ✕", fontSize = 11.sp) },
+                                label = { Text("Verified ✕", fontSize = 11.sp) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = com.example.ui.theme.VerifiedGreenContainer,
                                     selectedLabelColor = com.example.ui.theme.VerifiedGreen
@@ -705,7 +706,7 @@ private fun HomeScreenContent(
             }
         }
 
-        // 🔔 NOTIFICATION SYSTEM FEED (Replaced Smart Match Algorithm)
+        // Notification system feed (replaced Smart Match Algorithm)
         item(key = "notifications_feed_section") {
             NotificationFeedSection(
                 notifications = notifications,
@@ -727,8 +728,8 @@ private fun HomeScreenContent(
             )
         }
 
-        // 3. 🔥 URGENT PROPERTIES (Section 6 & 7 of Blueprint)
-        if (isLoading && urgentProperties.isEmpty()) {
+        // Rental discovery is Ren's primary v1 experience.
+        if (isLoading && featuredRentalProperties.isEmpty()) {
             item(key = "skeleton_urgent_row") {
                 Column {
                     Row(
@@ -743,11 +744,11 @@ private fun HomeScreenContent(
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Text(
-                                text = "🔥",
+                                text = "",
                                 fontSize = 14.sp
                             )
                             Text(
-                                text = "URGENT PROPERTIES",
+                                text = "RENTAL HOMES NEAR YOU",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface,
@@ -771,7 +772,7 @@ private fun HomeScreenContent(
                     }
                 }
             }
-        } else if (urgentProperties.isNotEmpty()) {
+        } else if (featuredRentalProperties.isNotEmpty()) {
             item {
                 Column {
                     Row(
@@ -786,11 +787,11 @@ private fun HomeScreenContent(
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Text(
-                                text = "🔥",
+                                text = "",
                                 fontSize = 14.sp
                             )
                             Text(
-                                text = "URGENT PROPERTIES",
+                                text = "RENTAL HOMES NEAR YOU",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface,
@@ -799,7 +800,7 @@ private fun HomeScreenContent(
                         }
 
                         Text(
-                            text = if (urgentOnly) "Show All" else "View All",
+                            text = if (urgentOnly) "Show All" else "See rentals",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.SemiBold,
@@ -813,7 +814,7 @@ private fun HomeScreenContent(
                         contentPadding = PaddingValues(horizontal = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        items(urgentProperties, key = { "urgent_${it.id}" }) { property ->
+                        items(featuredRentalProperties, key = { "rental_${it.id}" }) { property ->
                             UrgentPropertyCard(
                                 property = property,
                                 onClick = { onOpenPropertyDetails(property) },
@@ -913,7 +914,7 @@ private fun HomeScreenContent(
                 FilterChip(
                     selected = urgentOnly,
                     onClick = { onToggleUrgentOnly() },
-                    label = { Text("🔥 Urgent Only (1-7 Days)", fontSize = 12.sp) },
+                    label = { Text("Urgent only (1-7 days)", fontSize = 12.sp) },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = UrgencyFlameContainer,
                         selectedLabelColor = UrgencyFlame
@@ -953,7 +954,7 @@ private fun HomeScreenContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "NEAR ${selectedLocation.uppercase()}",
+                    text = "RENTAL HOMES IN ${selectedLocation.uppercase()}",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -994,7 +995,7 @@ private fun HomeScreenContent(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("🔍", fontSize = 36.sp)
+                        Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(36.dp), tint = TextSecondary)
                         Text(
                             text = "No properties found",
                             fontWeight = FontWeight.Bold,

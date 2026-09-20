@@ -16,3 +16,27 @@
 - Firestore security rules: `firebase/firestore.rules`
 - Firestore composite indexes: `firebase/firestore.indexes.json`
 - Storage security rules: `firebase/storage.rules`
+
+## Release readiness
+
+Ren v1 is rental-first. New listings are created as **Pending Review** and must
+be approved by a trusted moderation workflow before public discovery. Property
+owner phone numbers and email addresses are not stored in public listings;
+renters contact owners through Ren Chat.
+
+The repository now includes trusted moderation, server-side account deletion,
+two-way user blocking, and recipient push notifications. Before a Play Store
+release, deploy the Firebase rules, indexes, Storage rules, and functions to
+the production project, then validate a signed release bundle with two real
+accounts.
+
+## Firebase deployment
+
+The `functions/` directory contains the trusted backend for listing moderation,
+account deletion, and inquiry push notifications. From an authenticated Firebase
+CLI session, select the production project and run `npm install` then `npm run
+build` in `functions/`, followed by `firebase deploy`. Assign moderation staff a
+custom Auth claim of `moderator: true` (or `admin: true`) before they use the
+`moderateListing` callable function. Also add the production Android app in
+Firebase and place its generated `google-services.json` in `app/`; it is
+intentionally excluded from source control.

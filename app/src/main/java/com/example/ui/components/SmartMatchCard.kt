@@ -130,10 +130,6 @@ fun SmartMatchCard(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
-                                text = "🎯",
-                                fontSize = 12.sp
-                            )
-                            Text(
                                 text = "${matchScore.overallPercentage}% MATCH",
                                 color = scoreColor,
                                 fontSize = 12.sp,
@@ -263,7 +259,7 @@ fun SmartMatchCard(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
                 ) {
                     Text(
-                        text = "🏠 ${property.propertyType}",
+                        text = property.propertyType,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -277,7 +273,7 @@ fun SmartMatchCard(
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
                     ) {
                         Text(
-                            text = "🛏️ ${property.bedrooms} BHK",
+                            text = "${property.bedrooms} BHK",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -291,7 +287,7 @@ fun SmartMatchCard(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
                 ) {
                     Text(
-                        text = "📐 ${property.areaSqFt} sq.ft",
+                        text = "${property.areaSqFt} sq.ft",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -316,11 +312,11 @@ fun SmartMatchCard(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        ScoreFactorItem("💰 Budget", "${matchScore.budgetScore}%", matchScore.budgetScore >= 90)
-                        ScoreFactorItem("📍 Location", "${matchScore.locationScore}%", matchScore.locationScore >= 80)
-                        ScoreFactorItem("🏠 Type", "${matchScore.typeScore}%", matchScore.typeScore >= 80)
+                        ScoreFactorItem("Budget", "${matchScore.budgetScore}%", matchScore.budgetScore >= 90)
+                        ScoreFactorItem("Location", "${matchScore.locationScore}%", matchScore.locationScore >= 80)
+                        ScoreFactorItem("Type", "${matchScore.typeScore}%", matchScore.typeScore >= 80)
                         if (matchScore.urgencyBonus > 0) {
-                            ScoreFactorItem("⚡ Deal Bonus", "+${matchScore.urgencyBonus}%", true)
+                            ScoreFactorItem("Deal bonus", "+${matchScore.urgencyBonus}%", true)
                         }
                     }
 

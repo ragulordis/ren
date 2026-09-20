@@ -148,7 +148,7 @@ class ProfileViewModel(
                 _activeOtpCode.value = null
                 _verificationMessage.value = "Phone verified! You unlocked Level 1 Verified Buyer badge."
                 sendVerificationNotification(
-                    title = "📱 Phone Verified!",
+                    title = "Phone verified",
                     message = "Congratulations! Your mobile number $phoneNumber has been confirmed. You now have Level 1 Verified Buyer badge."
                 )
                 onSuccess()
@@ -174,7 +174,7 @@ class ProfileViewModel(
             result.onSuccess { updated ->
                 _verificationMessage.value = "Government ID verified! Level 2 Verified Buyer unlocked."
                 sendVerificationNotification(
-                    title = "🛡️ Government ID Verified!",
+                    title = "Government ID verified",
                     message = "Your $idType has been verified for $legalName. Trust level upgraded to Level 2."
                 )
                 onSuccess()
@@ -200,7 +200,7 @@ class ProfileViewModel(
             result.onSuccess { updated ->
                 _verificationMessage.value = "Purchasing power confirmed! Level 3 Pre-Approved Buyer unlocked."
                 sendVerificationNotification(
-                    title = "💰 Financial Capacity Pre-Approved!",
+                    title = "Financial capacity pre-approved",
                     message = "Verified budget range of $budgetRange with $institution. Sellers will prioritize your inquiries."
                 )
                 onSuccess()
@@ -261,6 +261,14 @@ class ProfileViewModel(
     fun logout() {
         viewModelScope.launch {
             authRepository.signOut()
+        }
+    }
+
+    fun deleteAccount() {
+        viewModelScope.launch {
+            authRepository.deleteAccount().onFailure {
+                Log.e("ProfileViewModel", "Account deletion failed", it)
+            }
         }
     }
 

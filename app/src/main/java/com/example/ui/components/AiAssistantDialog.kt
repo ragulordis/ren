@@ -109,7 +109,7 @@ fun AiAssistantDialog(
 
                     Column {
                         Text(
-                            text = "🤖 Ren AI Assistant",
+                            text = "Ren AI Assistant",
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary

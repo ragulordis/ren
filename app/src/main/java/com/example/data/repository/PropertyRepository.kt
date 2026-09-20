@@ -35,6 +35,7 @@ interface PropertyRepository {
     fun streamChatMessages(propertyId: String, buyerId: String): Flow<List<ChatMessage>>
     suspend fun insertChatMessage(message: ChatMessage, buyerId: String = "")
     suspend fun reportProperty(propertyId: String, propertyTitle: String, reason: String, details: String)
+    suspend fun blockUser(userId: String)
     suspend fun updatePropertyStatus(propertyId: String, status: String)
     suspend fun deleteProperty(propertyId: String)
     suspend fun updateProperty(property: Property)
@@ -111,8 +112,10 @@ class PropertyRepositoryImpl(
     }
 
     override suspend fun addProperty(property: Property) {
+        // The remote document is created first. Storage rules use it to prove ownership
+        // before any listing photos may be uploaded.
+        firestoreService.saveProperty(property, isNewListing = true).getOrThrow()
         dao.insertProperty(PropertyMapper.domainToEntity(property))
-        firestoreService.saveProperty(property)
     }
 
     override suspend fun scheduleVisit(visit: PropertyVisit) {
@@ -165,6 +168,10 @@ class PropertyRepositoryImpl(
         )
         dao.insertReport(report)
         firestoreService.saveReport(propertyId, propertyTitle, reason, details, reportId)
+    }
+
+    override suspend fun blockUser(userId: String) {
+        firestoreService.blockUser(userId).getOrThrow()
     }
 
     override suspend fun updatePropertyStatus(propertyId: String, status: String) {

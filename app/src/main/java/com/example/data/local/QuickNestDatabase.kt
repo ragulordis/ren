@@ -18,7 +18,7 @@ import kotlinx.coroutines.launch
         SearchAlertEntity::class,
         com.example.data.local.entity.NotificationEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class QuickNestDatabase : RoomDatabase() {
@@ -36,7 +36,7 @@ abstract class QuickNestDatabase : RoomDatabase() {
                     QuickNestDatabase::class.java,
                     "quicknest_db"
                 )
-                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                     .fallbackToDestructiveMigrationOnDowngrade()
                     .build()
                 INSTANCE = instance
