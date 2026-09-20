@@ -1,5 +1,6 @@
 package com.example
 
+import com.example.data.mapper.PropertyMapper
 import com.example.data.model.ListingType
 import com.example.data.model.Property
 import com.example.data.model.PropertyCategory
@@ -148,12 +149,12 @@ class ExampleUnitTest {
         assertEquals("RENT", entity.listingType)
 
         // Convert to domain model and back
-        val domain = entity.toDomain()
+        val domain = PropertyMapper.entityToDomain(entity)
         assertEquals(PropertyCategory.RENT, domain.category)
         assertEquals(ListingType.RENT, domain.listingType)
         assertEquals("Kottakuppam", domain.location)
 
-        val convertedEntity = com.example.data.local.PropertyEntity.fromDomain(domain)
+        val convertedEntity = PropertyMapper.domainToEntity(domain)
         assertEquals(entity.title, convertedEntity.title)
         assertEquals(entity.location, convertedEntity.location)
         assertEquals(entity.price, convertedEntity.price)

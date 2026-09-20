@@ -115,8 +115,68 @@ class FakeAuthRepository(
         return Result.success(updated)
     }
 
+    override suspend fun sendBuyerPhoneOtp(phoneNumber: String): Result<String> {
+        return Result.success("123456")
+    }
+
+    override suspend fun verifyBuyerPhoneWithOtp(phoneNumber: String, otp: String): Result<UserProfile> {
+        val current = currentUser ?: UserProfile(uid = "test-uid", displayName = "Test Buyer")
+        val updated = current.copy(
+            phone = phoneNumber,
+            verifiedPhone = phoneNumber,
+            isPhoneVerified = true,
+            verificationLevel = maxOf(current.verificationLevel, 1)
+        )
+        currentUser = updated
+        _authState.value = AuthState.SignedIn(updated)
+        return Result.success(updated)
+    }
+
+    override suspend fun verifyBuyerGovernmentId(idType: String, idNumber: String, legalName: String): Result<UserProfile> {
+        val current = currentUser ?: UserProfile(uid = "test-uid", displayName = "Test Buyer")
+        val updated = current.copy(
+            isGovtIdVerified = true,
+            govtIdType = idType,
+            govtIdNumberMasked = "•••• " + idNumber.takeLast(4),
+            verificationLevel = maxOf(current.verificationLevel, 2)
+        )
+        currentUser = updated
+        _authState.value = AuthState.SignedIn(updated)
+        return Result.success(updated)
+    }
+
+    override suspend fun verifyBuyerFinancials(budgetRange: String, institution: String, proofType: String): Result<UserProfile> {
+        val current = currentUser ?: UserProfile(uid = "test-uid", displayName = "Test Buyer")
+        val updated = current.copy(
+            isFinancialVerified = true,
+            buyerBudgetRange = budgetRange,
+            preApprovalBank = institution,
+            verificationLevel = maxOf(current.verificationLevel, 3)
+        )
+        currentUser = updated
+        _authState.value = AuthState.SignedIn(updated)
+        return Result.success(updated)
+    }
+
+    override suspend fun verifyBuyerSelfie(photoUri: String?): Result<UserProfile> {
+        val current = currentUser ?: UserProfile(uid = "test-uid", displayName = "Test Buyer")
+        val updated = current.copy(
+            isSelfieVerified = true,
+            verificationLevel = 4
+        )
+        currentUser = updated
+        _authState.value = AuthState.SignedIn(updated)
+        return Result.success(updated)
+    }
+
     fun setUser(user: UserProfile?) {
         currentUser = user
         _authState.value = if (user != null) AuthState.SignedIn(user) else AuthState.SignedOut
     }
+
+    var fakeProfile: UserProfile?
+        get() = currentUser
+        set(value) { setUser(value) }
+
+    var fakeUser: Any? = null
 }

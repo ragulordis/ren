@@ -38,7 +38,8 @@ class PostListingUseCase(
     private val repository: PropertyRepository,
     private val authRepository: AuthRepository,
     private val storageService: StorageService? = null,
-    private val context: Context? = null
+    private val context: Context? = null,
+    private val notificationRepository: com.example.data.repository.NotificationRepository? = null
 ) {
     suspend operator fun invoke(params: PostListingParams): Result<Property> = runCatching {
         require(params.title.isNotBlank()) { "Title cannot be empty" }
@@ -115,6 +116,14 @@ class PostListingUseCase(
         )
 
         repository.addProperty(newProperty)
+        notificationRepository?.sendNotification(
+            title = "Listing Published! 🏡",
+            message = "'${newProperty.title}' is now live on QuickNest with direct inquiries enabled.",
+            type = com.example.data.model.NotificationType.NEW_LISTING,
+            propertyId = newProperty.id,
+            targetLocation = newProperty.location,
+            actionText = "View Listing"
+        )
         newProperty
     }
 }

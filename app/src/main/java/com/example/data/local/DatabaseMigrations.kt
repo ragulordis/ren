@@ -28,3 +28,25 @@ val MIGRATION_5_6 = object : Migration(5, 6) {
         db.execSQL("ALTER TABLE chat_messages ADD COLUMN senderId TEXT NOT NULL DEFAULT ''")
     }
 }
+
+/**
+ * Creates the notifications table for the in-app notification system.
+ */
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `notifications` (
+                `id` TEXT NOT NULL PRIMARY KEY,
+                `title` TEXT NOT NULL,
+                `message` TEXT NOT NULL,
+                `type` TEXT NOT NULL,
+                `timestamp` INTEGER NOT NULL,
+                `isRead` INTEGER NOT NULL DEFAULT 0,
+                `propertyId` TEXT,
+                `targetLocation` TEXT,
+                `actionText` TEXT
+            )
+        """.trimIndent())
+    }
+}
+

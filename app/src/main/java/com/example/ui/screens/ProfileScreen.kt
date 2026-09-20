@@ -42,6 +42,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -59,8 +60,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.data.model.VerificationMethodType
+import com.example.ui.components.VerifiedBuyerBottomSheet
 import com.example.ui.theme.CardBorder
 import com.example.ui.theme.FastSaleAmber
+import com.example.ui.theme.NavyPrimary
 import com.example.ui.theme.NormalGreen
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
@@ -80,6 +84,13 @@ fun ProfileScreen(
 ) {
     val userRole by profileViewModel.userRole.collectAsStateWithLifecycle()
     val currentUserProfile by profileViewModel.currentUserProfile.collectAsStateWithLifecycle()
+    val showVerificationDialog by profileViewModel.showVerificationDialog.collectAsStateWithLifecycle()
+    val selectedMethod by profileViewModel.selectedVerificationMethod.collectAsStateWithLifecycle()
+    val activeOtpCode by profileViewModel.activeOtpCode.collectAsStateWithLifecycle()
+    val otpCountdown by profileViewModel.otpCountdown.collectAsStateWithLifecycle()
+    val isVerifying by profileViewModel.isVerifying.collectAsStateWithLifecycle()
+    val verificationMessage by profileViewModel.verificationMessage.collectAsStateWithLifecycle()
+    val verificationError by profileViewModel.verificationError.collectAsStateWithLifecycle()
 
     ProfileScreen(
         userRole = userRole,
@@ -87,8 +98,28 @@ fun ProfileScreen(
         onSetUserRole = { profileViewModel.setUserRole(it) },
         onFeedback = { mainViewModel.showFeedback(it) },
         onLogout = { profileViewModel.logout() },
+        onOpenVerification = { profileViewModel.openVerificationDialog(it) },
         modifier = modifier
     )
+
+    if (showVerificationDialog) {
+        VerifiedBuyerBottomSheet(
+            userProfile = currentUserProfile,
+            selectedMethod = selectedMethod,
+            activeOtpCode = activeOtpCode,
+            otpCountdown = otpCountdown,
+            isVerifying = isVerifying,
+            verificationMessage = verificationMessage,
+            verificationError = verificationError,
+            onSelectMethod = { profileViewModel.selectVerificationMethod(it) },
+            onSendOtp = { profileViewModel.sendPhoneOtp(it) },
+            onVerifyOtp = { phone, otp -> profileViewModel.verifyPhoneOtp(phone, otp) },
+            onVerifyGovtId = { type, num, name -> profileViewModel.verifyGovernmentId(type, num, name) },
+            onVerifyFinancials = { budget, bank, proof -> profileViewModel.verifyFinancials(budget, bank, proof) },
+            onVerifySelfie = { uri -> profileViewModel.verifySelfie(uri) },
+            onDismiss = { profileViewModel.closeVerificationDialog() }
+        )
+    }
 }
 
 @Composable
@@ -105,6 +136,7 @@ fun ProfileScreen(
         onSetUserRole = { viewModel.setUserRole(it) },
         onFeedback = { viewModel.triggerFeedback(it) },
         onLogout = { viewModel.logout() },
+        onOpenVerification = { /* No-op in legacy ViewModel */ },
         modifier = modifier
     )
 }
@@ -116,6 +148,7 @@ fun ProfileScreen(
     onSetUserRole: (String) -> Unit,
     onFeedback: (String) -> Unit,
     onLogout: () -> Unit,
+    onOpenVerification: (VerificationMethodType) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
 
@@ -351,22 +384,114 @@ fun ProfileScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Shield, null, tint = VerifiedGreen, modifier = Modifier.size(18.dp))
-                        Text(
-                            text = "Trust & Verification Badges",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(Icons.Default.Shield, null, tint = VerifiedGreen, modifier = Modifier.size(18.dp))
+                            Text(
+                                text = "Verified Buyer System",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                            )
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (profile?.isVerifiedBuyer == true) VerifiedGreenContainer else MaterialTheme.colorScheme.surfaceVariant,
+                            modifier = Modifier
+                                .clickable { onOpenVerification(VerificationMethodType.PHONE_OTP) }
+                                .testTag("verified_buyer_badge_pill")
+                        ) {
+                            Text(
+                                text = profile?.verifiedBadgeText ?: "Unverified",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (profile?.isVerifiedBuyer == true) VerifiedGreen else TextSecondary,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
                     }
 
-                    VerificationRow("Level 1: Phone OTP", "Completed (+91 98401 23456)", isDone = true)
-                    VerificationRow("Level 2: Government ID", "Aadhaar / Driving License Verified", isDone = true)
-                    VerificationRow("Level 3: Property Ownership", "Patta / EB Card Verified for Kottakuppam House", isDone = true)
-                    VerificationRow("Level 4: ⭐ Trusted Seller", "Submit 2 completed transactions to unlock", isDone = false)
+                    // Progress bar
+                    val vLevel = profile?.verificationLevel ?: 0
+                    LinearProgressIndicator(
+                        progress = { (vLevel / 4f).coerceIn(0f, 1f) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp)),
+                        color = VerifiedGreen,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+
+                    // 4 Interactive Rows
+                    val phoneVerified = profile?.isPhoneVerified == true || vLevel >= 1
+                    VerificationRow(
+                        title = "Level 1: Phone OTP Verification",
+                        subtitle = if (phoneVerified) "Completed (${profile?.verifiedPhone?.ifBlank { profile?.phone }?.takeIf { it.isNotBlank() } ?: "Verified Mobile"})" else "Tap to verify 10-digit mobile number via SMS OTP",
+                        isDone = phoneVerified,
+                        onClick = { onOpenVerification(VerificationMethodType.PHONE_OTP) }
+                    )
+
+                    val govtIdVerified = profile?.isGovtIdVerified == true || vLevel >= 2
+                    VerificationRow(
+                        title = "Level 2: Government ID",
+                        subtitle = if (govtIdVerified) "${profile?.govtIdType?.ifBlank { "National ID" } ?: "National ID"} (${profile?.govtIdNumberMasked?.ifBlank { "••••" } ?: "••••"}) Verified" else "Tap to verify Aadhaar / Driving License / Passport",
+                        isDone = govtIdVerified,
+                        onClick = { onOpenVerification(VerificationMethodType.GOVERNMENT_ID) }
+                    )
+
+                    val financialVerified = profile?.isFinancialVerified == true || vLevel >= 3
+                    VerificationRow(
+                        title = "Level 3: Financial Pre-Approval",
+                        subtitle = if (financialVerified) "Verified: ${profile?.buyerBudgetRange ?: "Budget"} (${profile?.preApprovalBank ?: "Bank"})" else "Tap to pre-approve purchasing capacity",
+                        isDone = financialVerified,
+                        onClick = { onOpenVerification(VerificationMethodType.FINANCIAL_PRE_APPROVAL) }
+                    )
+
+                    val selfieVerified = profile?.isSelfieVerified == true || vLevel >= 4
+                    VerificationRow(
+                        title = "Level 4: ⭐ Elite Biometric Match",
+                        subtitle = if (selfieVerified) "Biometric Liveness Match Confirmed" else "Tap for facial liveness match to unlock Elite Buyer status",
+                        isDone = selfieVerified,
+                        onClick = { onOpenVerification(VerificationMethodType.SELFIE_LIVENESS) }
+                    )
+
+                    // Button CTA
+                    if (vLevel < 4) {
+                        Button(
+                            onClick = {
+                                val nextMethod = when {
+                                    !phoneVerified -> VerificationMethodType.PHONE_OTP
+                                    !govtIdVerified -> VerificationMethodType.GOVERNMENT_ID
+                                    !financialVerified -> VerificationMethodType.FINANCIAL_PRE_APPROVAL
+                                    else -> VerificationMethodType.SELFIE_LIVENESS
+                                }
+                                onOpenVerification(nextMethod)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("start_verification_button"),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = NavyPrimary
+                            )
+                        ) {
+                            Icon(Icons.Default.VerifiedUser, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (vLevel == 0) "Get Verified Buyer Badge" else "Upgrade Trust Badge to Level ${vLevel + 1}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -508,12 +633,18 @@ private fun StatBox(
 }
 
 @Composable
-private fun VerificationRow(title: String, subtitle: String, isDone: Boolean) {
+private fun VerificationRow(
+    title: String,
+    subtitle: String,
+    isDone: Boolean,
+    onClick: () -> Unit = {}
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(if (isDone) VerifiedGreen.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceVariant)
+            .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -527,6 +658,18 @@ private fun VerificationRow(title: String, subtitle: String, isDone: Boolean) {
         Column(modifier = Modifier.weight(1f)) {
             Text(title, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
             Text(subtitle, fontSize = 10.sp, color = TextSecondary)
+        }
+        Surface(
+            shape = RoundedCornerShape(8.dp),
+            color = if (isDone) VerifiedGreenContainer else MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+        ) {
+            Text(
+                text = if (isDone) "Verified" else "Verify",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isDone) VerifiedGreen else MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+            )
         }
     }
 }

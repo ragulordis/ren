@@ -51,14 +51,4 @@ data class PropertyEntity(
     val mapLng: Double,
     val isPrivate: Boolean,
     val status: String
-) {
-    fun toDomain(): com.example.domain.model.Property {
-        return com.example.data.mapper.PropertyMapper.entityToDomain(this)
-    }
-
-    companion object {
-        fun fromDomain(property: com.example.domain.model.Property): PropertyEntity {
-            return com.example.data.mapper.PropertyMapper.domainToEntity(property)
-        }
-    }
-}
+)

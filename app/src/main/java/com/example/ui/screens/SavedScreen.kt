@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.model.ListingType
+import com.example.data.model.Property
 import com.example.data.model.PropertyCategory
 import com.example.data.model.SellingSpeed
 import com.example.ui.components.PropertyCard

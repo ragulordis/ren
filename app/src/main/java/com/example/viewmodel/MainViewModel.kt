@@ -2,14 +2,17 @@ package com.example.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.data.model.AppNotification
 import com.example.data.model.BuyerMatch
 import com.example.data.model.ChatMessage
 import com.example.data.model.ListingType
+import com.example.data.model.NotificationType
 import com.example.data.model.Property
 import com.example.data.model.PropertyCategory
 import com.example.data.model.PropertyVisit
 import com.example.data.model.SellingSpeed
 import com.example.data.repository.AuthRepository
+import com.example.data.repository.NotificationRepository
 import com.example.data.repository.PropertyRepository
 import com.example.domain.usecase.ScheduleVisitUseCase
 import com.example.domain.usecase.SendChatMessageUseCase
@@ -26,7 +29,8 @@ class MainViewModel(
     private val authRepository: AuthRepository,
     private val sendChatMessageUseCase: SendChatMessageUseCase,
     private val aiSearchUseCase: com.example.domain.usecase.AiSearchUseCase = com.example.domain.usecase.AiSearchUseCase(),
-    private val scheduleVisitUseCase: ScheduleVisitUseCase = ScheduleVisitUseCase(propertyRepository, authRepository)
+    private val scheduleVisitUseCase: ScheduleVisitUseCase = ScheduleVisitUseCase(propertyRepository, authRepository),
+    private val notificationRepository: NotificationRepository? = null
 ) : ViewModel() {
 
     // Tab Navigation State (0: Home, 1: Explore, 2: Post, 3: Saved, 4: Profile)
@@ -76,6 +80,23 @@ class MainViewModel(
 
     private val _showSmartMatchDialog = MutableStateFlow(false)
     val showSmartMatchDialog: StateFlow<Boolean> = _showSmartMatchDialog.asStateFlow()
+
+    private val _showNotificationCenter = MutableStateFlow(false)
+    val showNotificationCenter: StateFlow<Boolean> = _showNotificationCenter.asStateFlow()
+
+    val allNotifications: StateFlow<List<AppNotification>> =
+        (notificationRepository?.allNotifications ?: MutableStateFlow(emptyList()))
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val unreadNotificationsCount: StateFlow<Int> =
+        (notificationRepository?.unreadCount ?: MutableStateFlow(0))
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    init {
+        viewModelScope.launch {
+            notificationRepository?.initializeNotificationsIfEmpty()
+        }
+    }
 
     // Chat Message Flow
     private val _chatMessages = MutableStateFlow<List<ChatMessage>>(emptyList())
@@ -132,7 +153,16 @@ class MainViewModel(
         val currentProp = _chatProperty.value ?: return
         viewModelScope.launch {
             val result = sendChatMessageUseCase.sendMessage(currentProp.id, text)
-            result.onFailure {
+            result.onSuccess {
+                notificationRepository?.sendNotification(
+                    title = "Inquiry Sent 💬",
+                    message = "Message sent for '${currentProp.title}': \"${text.take(35)}\"",
+                    type = NotificationType.CHAT_MESSAGE,
+                    propertyId = currentProp.id,
+                    targetLocation = currentProp.location,
+                    actionText = "Open Chat"
+                )
+            }.onFailure {
                 showFeedback("Failed to send message: ${it.message}")
             }
         }
@@ -183,6 +213,14 @@ class MainViewModel(
             val result = scheduleVisitUseCase(property, date, timeSlot)
             result.onSuccess {
                 showFeedback("Visit scheduled for $date at $timeSlot")
+                notificationRepository?.sendNotification(
+                    title = "Site Visit Scheduled 📅",
+                    message = "Visit requested for '${property.title}' on $date at $timeSlot.",
+                    type = NotificationType.VISIT_UPDATE,
+                    propertyId = property.id,
+                    targetLocation = property.location,
+                    actionText = "View Property"
+                )
                 closeVisitBooking()
             }.onFailure {
                 showFeedback("Failed to schedule visit: ${it.message}")
@@ -231,18 +269,64 @@ class MainViewModel(
     }
 
     fun openSmartMatchDialog() {
-        _showSmartMatchDialog.value = true
+        // Replaced by Notification Center
+        openNotificationCenter()
     }
 
     fun closeSmartMatchDialog() {
         _showSmartMatchDialog.value = false
     }
 
+    fun openNotificationCenter() {
+        _showNotificationCenter.value = true
+    }
+
+    fun closeNotificationCenter() {
+        _showNotificationCenter.value = false
+    }
+
+    fun markNotificationAsRead(id: String) {
+        viewModelScope.launch {
+            notificationRepository?.markAsRead(id)
+        }
+    }
+
+    fun markAllNotificationsAsRead() {
+        viewModelScope.launch {
+            notificationRepository?.markAllAsRead()
+            showFeedback("All notifications marked as read")
+        }
+    }
+
+    fun deleteNotification(id: String) {
+        viewModelScope.launch {
+            notificationRepository?.deleteNotification(id)
+        }
+    }
+
+    fun clearAllNotifications() {
+        viewModelScope.launch {
+            notificationRepository?.clearAll()
+            showFeedback("Cleared all notifications")
+        }
+    }
+
     fun toggleSave(property: Property) {
         viewModelScope.launch {
-            propertyRepository.toggleSave(property.id, property.isSaved)
-            val msg = if (!property.isSaved) "Saved to your list" else "Removed from saved"
+            val wasSaved = property.isSaved
+            propertyRepository.toggleSave(property.id, wasSaved)
+            val msg = if (!wasSaved) "Saved to your list" else "Removed from saved"
             showFeedback(msg)
+            if (!wasSaved) {
+                notificationRepository?.sendNotification(
+                    title = "Price Watch Activated ⭐",
+                    message = "Added '${property.title}' to saved list. You'll receive instant price drop alerts.",
+                    type = NotificationType.PROPERTY_ALERT,
+                    propertyId = property.id,
+                    targetLocation = property.location,
+                    actionText = "View Saved"
+                )
+            }
         }
     }
 

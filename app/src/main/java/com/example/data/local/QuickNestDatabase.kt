@@ -15,13 +15,15 @@ import kotlinx.coroutines.launch
         VisitEntity::class,
         ChatMessageEntity::class,
         PropertyReportEntity::class,
-        SearchAlertEntity::class
+        SearchAlertEntity::class,
+        com.example.data.local.entity.NotificationEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 abstract class QuickNestDatabase : RoomDatabase() {
     abstract fun propertyDao(): PropertyDao
+    abstract fun notificationDao(): NotificationDao
 
     companion object {
         @Volatile
@@ -34,7 +36,8 @@ abstract class QuickNestDatabase : RoomDatabase() {
                     QuickNestDatabase::class.java,
                     "quicknest_db"
                 )
-                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                    .fallbackToDestructiveMigrationOnDowngrade()
                     .build()
                 INSTANCE = instance
                 instance

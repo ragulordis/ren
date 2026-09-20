@@ -30,11 +30,13 @@ class RenApplication : Application() {
             }
         }
 
-        // Initialize Koin DI
-        startKoin {
-            androidLogger(Level.ERROR)
-            androidContext(this@RenApplication)
-            modules(appModules)
+        // Initialize Koin DI safely for app and Robolectric testing
+        if (org.koin.core.context.GlobalContext.getOrNull() == null) {
+            startKoin {
+                androidLogger(Level.ERROR)
+                androidContext(this@RenApplication)
+                modules(appModules)
+            }
         }
     }
 }

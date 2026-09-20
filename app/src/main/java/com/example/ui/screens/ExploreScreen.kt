@@ -82,6 +82,7 @@ import com.example.ui.components.SkeletonMapView
 import com.example.ui.components.getDrawableResForName
 import com.example.ui.theme.CardBorder
 import com.example.ui.theme.CardBorderSubtle
+import com.example.ui.theme.UrgencyFlame
 import com.example.ui.theme.IvoryBackground
 import com.example.ui.theme.SurfaceWhite
 import com.example.ui.theme.NavyPrimary

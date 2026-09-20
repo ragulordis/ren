@@ -13,7 +13,9 @@ val SurfaceWhite = Color(0xFFFFFFFF) // Pure White Surface
 val SurfaceIvoryTint = Color(0xFFF1F0EC) // Subtle Warm Ivory Surface Variant
 val CharcoalNavyText = Color(0xFF172033) // High-contrast Deep Navy-Charcoal Text
 val SlateSecondaryText = Color(0xFF64748B) // Clean Slate Secondary Text
+val SlatePrimaryText = CharcoalNavyText
 val SlateMutedText = Color(0xFF94A3B8) // Muted Placeholder/Caption Text
+val EmeraldVerify = Color(0xFF059669)
 
 // Semantic Brand Tokens
 val BrandPrimary = NavyPrimary // Enterprise Navy

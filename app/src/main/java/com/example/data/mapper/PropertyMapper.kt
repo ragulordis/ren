@@ -138,8 +138,6 @@ object PropertyMapper {
         )
     }
 
-    fun PropertyEntity.toDomain(): Property = entityToDomain(this)
-
     fun domainToEntity(property: Property): PropertyEntity {
         return PropertyEntity(
             id = property.id,
@@ -181,6 +179,4 @@ object PropertyMapper {
             status = property.status
         )
     }
-
-    fun Property.toEntity(): PropertyEntity = domainToEntity(this)
 }

@@ -138,7 +138,7 @@ class AiSearchUseCase {
 
         val finalProps = if (filtered.isNotEmpty()) filtered else props.take(4)
         val explanation = if (filtered.isNotEmpty()) {
-            "Found " + str(len(filtered)) + " properties matching your natural search criteria."
+            "Found ${filtered.size} properties matching your natural search criteria."
         } else {
             "Showing top verified listings matching your preferences."
         }

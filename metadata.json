@@ -1,6 +1,6 @@
 {
   "name": "Ren",
-  "description": "Find Your Place - Real Estate & Housing Network across India. Search verified homes, apartments, villas, and plots nationwide.",
+  "description": "Find Your Place - Real Estate & Housing Network across India. Search verified homes, apartments, villas, and plots nationwide with Verified Buyer System and real-time notifications.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

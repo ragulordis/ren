@@ -699,18 +699,18 @@ fun PostPropertyScreen(
                     onPostProperty(
                         finalTitle,
                         finalDesc,
-                        category = selectedCategory,
-                        propertyType = propertyType,
-                        price = finalPrice,
-                        marketEstimate = finalMarket,
-                        location = location,
-                        bedrooms = bedrooms.toIntOrNull() ?: 2,
-                        bathrooms = bathrooms.toIntOrNull() ?: 2,
-                        areaSqFt = areaSqFt.toIntOrNull() ?: 1200,
-                        speed = selectedSpeed,
-                        features = selectedFeatures.value.toList(),
-                        isPrivate = isPrivateListing,
-                        imageUri = selectedImageUri
+                        selectedCategory,
+                        propertyType,
+                        finalPrice,
+                        finalMarket,
+                        location,
+                        bedrooms.toIntOrNull() ?: 2,
+                        bathrooms.toIntOrNull() ?: 2,
+                        areaSqFt.toIntOrNull() ?: 1200,
+                        selectedSpeed,
+                        selectedFeatures.value.toList(),
+                        isPrivateListing,
+                        selectedImageUri
                     )
                 },
                 modifier = Modifier

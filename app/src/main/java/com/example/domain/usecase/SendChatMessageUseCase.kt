@@ -5,6 +5,7 @@ import com.example.data.model.Property
 import com.example.data.repository.AuthRepository
 import com.example.data.repository.PropertyRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 
 /**
  * UseCase to handle real-time chat transmissions without fake bot simulations.
@@ -20,7 +21,7 @@ class SendChatMessageUseCase(
             val myName = authRepository.currentUser()?.displayName
 
             // First launch a collector for remote messages to persist them to Room
-            val remoteJob = kotlinx.coroutines.launch {
+            val remoteJob = launch {
                 // Pass explicit buyerId so FirestoreService uses the scoped conversation path
                 repository.streamChatMessages(propertyId, myId).collect { remoteMsgs ->
                     remoteMsgs.forEach { remoteMsg ->

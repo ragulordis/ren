@@ -56,8 +56,15 @@ import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PostAdd
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import com.example.ui.components.NotificationCenterBottomSheet
+import com.example.ui.theme.SlatePrimaryText
+import com.example.ui.theme.UrgencyFlame
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
@@ -178,6 +185,10 @@ fun QuickNestApp(
     val aiResults by mainViewModel.aiResults.collectAsStateWithLifecycle()
     val aiExplanation by mainViewModel.aiExplanation.collectAsStateWithLifecycle()
     val showSmartMatchDialog by mainViewModel.showSmartMatchDialog.collectAsStateWithLifecycle()
+    val notifications by mainViewModel.allNotifications.collectAsStateWithLifecycle()
+    val unreadNotificationsCount by mainViewModel.unreadNotificationsCount.collectAsStateWithLifecycle()
+    val showNotificationCenter by mainViewModel.showNotificationCenter.collectAsStateWithLifecycle()
+    val allProperties by mainViewModel.allProperties.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -323,21 +334,38 @@ fun QuickNestApp(
                     }
                 },
                 actions = {
-                    IconButton(
-                        onClick = { mainViewModel.openSmartMatchDialog() },
-                        modifier = Modifier
-                            .padding(end = 3.dp)
-                            .size(38.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .testTag("top_bar_smart_match_button")
+                    BadgedBox(
+                        badge = {
+                            if (unreadNotificationsCount > 0) {
+                                Badge(
+                                    containerColor = UrgencyFlame,
+                                    contentColor = androidx.compose.ui.graphics.Color.White
+                                ) {
+                                    Text(
+                                        text = if (unreadNotificationsCount > 9) "9+" else unreadNotificationsCount.toString(),
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        },
+                        modifier = Modifier.padding(end = 4.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.ElectricBolt,
-                            contentDescription = "Smart match",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(19.dp)
-                        )
+                        IconButton(
+                            onClick = { mainViewModel.openNotificationCenter() },
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .testTag("top_bar_notifications_button")
+                        ) {
+                            Icon(
+                                imageVector = if (unreadNotificationsCount > 0) Icons.Default.NotificationsActive else Icons.Default.Notifications,
+                                contentDescription = "Notifications",
+                                tint = if (unreadNotificationsCount > 0) MaterialTheme.colorScheme.primary else SlatePrimaryText,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
 
                     IconButton(
@@ -582,6 +610,27 @@ fun QuickNestApp(
             onSearch = { mainViewModel.runAiNaturalSearch(it) },
             onSelectProperty = { mainViewModel.openPropertyDetails(it) },
             onDismiss = { mainViewModel.closeAiAssistant() }
+        )
+    }
+
+    if (showNotificationCenter) {
+        NotificationCenterBottomSheet(
+            notifications = notifications,
+            unreadCount = unreadNotificationsCount,
+            onDismiss = { mainViewModel.closeNotificationCenter() },
+            onMarkAsRead = { mainViewModel.markNotificationAsRead(it) },
+            onMarkAllAsRead = { mainViewModel.markAllNotificationsAsRead() },
+            onDeleteNotification = { mainViewModel.deleteNotification(it) },
+            onClearAll = { mainViewModel.clearAllNotifications() },
+            onNotificationClick = { notification ->
+                if (notification.propertyId != null) {
+                    val prop = allProperties.firstOrNull { it.id == notification.propertyId }
+                    if (prop != null) {
+                        mainViewModel.openPropertyDetails(prop)
+                        mainViewModel.closeNotificationCenter()
+                    }
+                }
+            }
         )
     }
 

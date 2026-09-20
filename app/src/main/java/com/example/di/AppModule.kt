@@ -30,6 +30,7 @@ import org.koin.dsl.module
 val databaseModule = module {
     single { QuickNestDatabase.getInstance(androidContext()) }
     single { get<QuickNestDatabase>().propertyDao() }
+    single { get<QuickNestDatabase>().notificationDao() }
 }
 
 val networkModule = module {
@@ -40,11 +41,12 @@ val networkModule = module {
 val repositoryModule = module {
     single<PropertyRepository> { PropertyRepositoryImpl(get(), get()) }
     single<AuthRepository> { AuthRepositoryImpl() }
+    single<com.example.data.repository.NotificationRepository> { com.example.data.repository.NotificationRepositoryImpl(get(), androidContext()) }
 }
 
 val useCaseModule = module {
     factory { GetPropertiesUseCase(get()) }
-    factory { PostListingUseCase(get(), get(), get(), androidContext()) }
+    factory { PostListingUseCase(get(), get(), get(), androidContext(), get()) }
     factory { ScheduleVisitUseCase(get(), get()) }
     factory { SmartMatchUseCase(get()) }
     factory { ToggleSavePropertyUseCase(get()) }
@@ -55,8 +57,8 @@ val useCaseModule = module {
 }
 
 val viewModelModule = module {
-    // MainViewModel: propertyRepository, authRepository, sendChatMessageUseCase, aiSearchUseCase
-    viewModel { MainViewModel(get(), get(), get(), get()) }
+    // MainViewModel: propertyRepository, authRepository, sendChatMessageUseCase, aiSearchUseCase, scheduleVisitUseCase, notificationRepository
+    viewModel { MainViewModel(get(), get(), get(), get(), get(), get()) }
     // AuthViewModel: application + authRepository
     viewModel { AuthViewModel(androidApplication(), get()) }
     // HomeViewModel: propertyRepository, getPropertiesUseCase (rest defaulted from repository)
@@ -67,8 +69,8 @@ val viewModelModule = module {
     viewModel { PostPropertyViewModel(get(), get()) }
     // SavedViewModel: propertyRepository, getPropertiesUseCase, toggleSaveUseCase
     viewModel { SavedViewModel(get(), get(), get()) }
-    // ProfileViewModel: authRepository, propertyRepository
-    viewModel { ProfileViewModel(get(), get()) }
+    // ProfileViewModel: authRepository, propertyRepository, notificationRepository
+    viewModel { ProfileViewModel(get(), get(), getOrNull()) }
     // Legacy — kept for backward compatibility with existing Robolectric CUJ tests
     viewModel { QuickNestViewModel(androidApplication()) }
 }

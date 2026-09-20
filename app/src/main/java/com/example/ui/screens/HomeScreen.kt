@@ -74,7 +74,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.data.model.AppNotification
+import com.example.data.model.Property
 import com.example.data.model.PropertyCategory
+import com.example.ui.components.NotificationFeedSection
 import com.example.ui.components.PropertyCard
 import com.example.ui.components.PropertySearchBar
 import com.example.ui.components.RecentSearchesRow
@@ -130,8 +133,13 @@ fun HomeScreen(
     val smartMatchPreferences by homeViewModel.smartMatchPreferences.collectAsStateWithLifecycle()
     val isSmartMatchLoading by homeViewModel.isSmartMatchLoading.collectAsStateWithLifecycle()
     val currentUserProfile by homeViewModel.currentUserProfile.collectAsStateWithLifecycle()
+    val notifications by mainViewModel.allNotifications.collectAsStateWithLifecycle()
+    val unreadNotificationsCount by mainViewModel.unreadNotificationsCount.collectAsStateWithLifecycle()
 
     HomeScreenContent(
+        notifications = notifications,
+        unreadNotificationsCount = unreadNotificationsCount,
+        onOpenNotificationCenter = { mainViewModel.openNotificationCenter() },
         filteredProperties = filteredProperties,
         urgentProperties = urgentProperties,
         isLoading = isLoading,
@@ -279,6 +287,9 @@ private fun HomeScreenContent(
     smartMatchPreferences: com.example.data.model.UserPreferences,
     isSmartMatchLoading: Boolean,
     currentUserProfile: com.example.data.model.UserProfile?,
+    notifications: List<AppNotification> = emptyList(),
+    unreadNotificationsCount: Int = 0,
+    onOpenNotificationCenter: () -> Unit = {},
     onSelectLocation: (String) -> Unit,
     onRefresh: () -> Unit,
     onSearchQueryChange: (String) -> Unit,
@@ -304,7 +315,7 @@ private fun HomeScreenContent(
     onClearRecentSearches: () -> Unit,
     onNavigateToExplore: () -> Unit,
     modifier: Modifier = Modifier
-)
+) {
 
     var showLocationPicker by remember { mutableStateOf(false) }
     val locationsList = listOf(
@@ -694,122 +705,26 @@ private fun HomeScreenContent(
             }
         }
 
-        // 🎯 SMART MATCH ALGORITHM RECOMMENDATIONS (Firestore Queries + Weighted Scoring)
-        item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Text(
-                                text = "🎯",
-                                fontSize = 16.sp
-                            )
-                            Text(
-                                text = "Smart Match Engine",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
+        // 🔔 NOTIFICATION SYSTEM FEED (Replaced Smart Match Algorithm)
+        item(key = "notifications_feed_section") {
+            NotificationFeedSection(
+                notifications = notifications,
+                unreadCount = unreadNotificationsCount,
+                onOpenNotificationCenter = onOpenNotificationCenter,
+                onNotificationClick = { notification ->
+                    if (notification.propertyId != null) {
+                        val prop = filteredProperties.firstOrNull { it.id == notification.propertyId }
+                            ?: urgentProperties.firstOrNull { it.id == notification.propertyId }
+                        if (prop != null) {
+                            onOpenPropertyDetails(prop)
+                        } else {
+                            onOpenNotificationCenter()
                         }
-                        Text(
-                            text = "Cloud Firestore • ${smartMatchPreferences.summaryText}",
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
-                        modifier = Modifier
-                            .clickable { onOpenSmartMatchDialog() }
-                            .testTag("home_smart_match_tune_button")
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(
-                                text = "Tune / Match",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                            Text(
-                                text = "→",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        }
+                    } else {
+                        onOpenNotificationCenter()
                     }
                 }
-
-                if (isSmartMatchLoading) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp,
-                                color = BrandPrimary
-                            )
-                            Text(
-                                text = "Querying Firestore for smart matches...",
-                                fontSize = 12.sp,
-                                color = BrandPrimary
-                            )
-                        }
-                    }
-                } else if (smartMatchResults.isNotEmpty()) {
-                    smartMatchResults.take(3).forEach { result ->
-                        SmartMatchCard(
-                            result = result,
-                            onClick = { onOpenPropertyDetails(result.property) },
-                            onToggleSave = { onToggleSave(result.property) },
-                            onContactSeller = { onContactSeller(result.property) },
-                            onBookVisit = { onBookVisit(result.property) }
-                        )
-                    }
-
-                    if (smartMatchResults.size > 3) {
-                        OutlinedButton(
-                            onClick = { onOpenSmartMatchDialog() },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("view_all_smart_matches_button"),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text(
-                                text = "View All ${smartMatchResults.size} Smart Matches →",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-            }
+            )
         }
 
         // 3. 🔥 URGENT PROPERTIES (Section 6 & 7 of Blueprint)

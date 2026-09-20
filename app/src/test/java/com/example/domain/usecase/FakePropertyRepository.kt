@@ -81,11 +81,11 @@ open class FakePropertyRepository : PropertyRepository {
         return flowOf(chatMessages.filter { it.propertyId == propertyId })
     }
 
-    override fun streamChatMessages(propertyId: String): Flow<List<ChatMessage>> {
+    override fun streamChatMessages(propertyId: String, buyerId: String): Flow<List<ChatMessage>> {
         return flowOf(chatMessages.filter { it.propertyId == propertyId })
     }
 
-    override suspend fun insertChatMessage(message: ChatMessage) {
+    override suspend fun insertChatMessage(message: ChatMessage, buyerId: String) {
         chatMessages.add(message)
     }
 

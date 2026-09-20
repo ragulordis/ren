@@ -45,7 +45,7 @@ class AuthViewModel(
             authRepository.authState.collect { state ->
                 when (state) {
                     is AuthState.SignedIn -> {
-                        _currentUserProfile.value = state.profile
+                        _currentUserProfile.value = state.user
                         _isLoggedIn.value = true
                     }
                     is AuthState.SignedOut -> {

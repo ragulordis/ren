@@ -1,9 +1,9 @@
 package com.example.data.repository
 
-import com.example.data.local.DefaultProperties
 import com.example.data.local.PropertyDao
 import com.example.data.local.PropertyEntity
 import com.example.data.local.VisitEntity
+import com.example.data.mapper.PropertyMapper
 import com.example.data.model.ChatMessage
 import com.example.data.model.Property
 import com.example.data.model.PropertyVisit
@@ -62,11 +62,11 @@ class PropertyRepositoryImpl(
 ) : PropertyRepository {
 
     override val allProperties: Flow<List<Property>> = dao.getAllProperties().map { entities ->
-        entities.map { it.toDomain() }
+        entities.map { PropertyMapper.entityToDomain(it) }
     }
 
     override val savedProperties: Flow<List<Property>> = dao.getSavedProperties().map { entities ->
-        entities.map { it.toDomain() }
+        entities.map { PropertyMapper.entityToDomain(it) }
     }
 
     override val allVisits: Flow<List<PropertyVisit>> = dao.getAllVisits().map { entities ->
@@ -74,23 +74,31 @@ class PropertyRepositoryImpl(
     }
 
     override suspend fun ensureInitialized(seedLocalDevIfEmpty: Boolean) {
+        // Remove any residual mock/sample properties from local database
+        dao.deleteMockProperties()
+
+        // Fetch real properties from Firestore if local cache is empty
         val count = dao.getCount()
-        if (count == 0 && seedLocalDevIfEmpty) {
-            // Local offline preview cache only - NEVER pushes fake listings to production Firestore
-            dao.insertProperties(DefaultProperties.sampleList.map { PropertyEntity.fromDomain(it) })
+        if (count == 0) {
+            runCatching {
+                val remoteProperties = firestoreService.fetchPropertiesOnce()
+                if (remoteProperties.isNotEmpty()) {
+                    dao.insertProperties(remoteProperties.map { PropertyMapper.domainToEntity(it) })
+                }
+            }
         }
     }
 
     override suspend fun syncWithFirestore(remoteProperties: List<Property>) {
         if (remoteProperties.isNotEmpty()) {
-            dao.insertProperties(remoteProperties.map { PropertyEntity.fromDomain(it) })
+            dao.insertProperties(remoteProperties.map { PropertyMapper.domainToEntity(it) })
         }
     }
 
     override suspend fun refreshFromFirestore(): Result<Int> = runCatching {
         val remoteProperties = firestoreService.fetchPropertiesOnce()
         if (remoteProperties.isNotEmpty()) {
-            dao.insertProperties(remoteProperties.map { PropertyEntity.fromDomain(it) })
+            dao.insertProperties(remoteProperties.map { PropertyMapper.domainToEntity(it) })
             remoteProperties.size
         } else {
             // Keep existing local seed/cached data intact
@@ -103,7 +111,7 @@ class PropertyRepositoryImpl(
     }
 
     override suspend fun addProperty(property: Property) {
-        dao.insertProperty(PropertyEntity.fromDomain(property))
+        dao.insertProperty(PropertyMapper.domainToEntity(property))
         firestoreService.saveProperty(property)
     }
 
@@ -161,7 +169,7 @@ class PropertyRepositoryImpl(
 
     override suspend fun updatePropertyStatus(propertyId: String, status: String) {
         val targetStatus = com.example.domain.model.ListingStatus.fromString(status)
-        val currentProperty = dao.getPropertyByIdSync(propertyId)?.toDomain()
+        val currentProperty = dao.getPropertyByIdSync(propertyId)?.let { PropertyMapper.entityToDomain(it) }
         if (currentProperty != null) {
             val currentStatus = com.example.domain.model.ListingStatus.fromString(currentProperty.status)
             require(com.example.domain.model.ListingStatus.isValidTransition(currentStatus, targetStatus)) {
@@ -178,21 +186,21 @@ class PropertyRepositoryImpl(
     }
 
     override suspend fun updateProperty(property: Property) {
-        dao.updateProperty(PropertyEntity.fromDomain(property))
+        dao.updateProperty(PropertyMapper.domainToEntity(property))
         firestoreService.saveProperty(property)
     }
 
     override fun getPropertiesByCategory(category: String): Flow<List<Property>> =
-        dao.getPropertiesByCategory(category).map { list -> list.map { it.toDomain() } }
+        dao.getPropertiesByCategory(category).map { list -> list.map { PropertyMapper.entityToDomain(it) } }
 
     override fun getPropertiesByListingType(listingType: String): Flow<List<Property>> =
-        dao.getPropertiesByListingType(listingType).map { list -> list.map { it.toDomain() } }
+        dao.getPropertiesByListingType(listingType).map { list -> list.map { PropertyMapper.entityToDomain(it) } }
 
     override fun getPropertiesByLocation(location: String): Flow<List<Property>> =
-        dao.getPropertiesByLocation(location).map { list -> list.map { it.toDomain() } }
+        dao.getPropertiesByLocation(location).map { list -> list.map { PropertyMapper.entityToDomain(it) } }
 
     override fun getPropertiesByPriceRange(minPrice: Long, maxPrice: Long): Flow<List<Property>> =
-        dao.getPropertiesByPriceRange(minPrice, maxPrice).map { list -> list.map { it.toDomain() } }
+        dao.getPropertiesByPriceRange(minPrice, maxPrice).map { list -> list.map { PropertyMapper.entityToDomain(it) } }
 
     override fun getPropertiesFiltered(
         location: String?,
@@ -200,10 +208,10 @@ class PropertyRepositoryImpl(
         minPrice: Long,
         maxPrice: Long
     ): Flow<List<Property>> =
-        dao.getPropertiesFiltered(location, category, minPrice, maxPrice).map { list -> list.map { it.toDomain() } }
+        dao.getPropertiesFiltered(location, category, minPrice, maxPrice).map { list -> list.map { PropertyMapper.entityToDomain(it) } }
 
     override fun searchProperties(query: String): Flow<List<Property>> =
-        dao.searchProperties(query).map { list -> list.map { it.toDomain() } }
+        dao.searchProperties(query).map { list -> list.map { PropertyMapper.entityToDomain(it) } }
 
     override suspend fun addSearchAlert(location: String, propertyType: String, maxPrice: Long) {
         dao.insertSearchAlert(
@@ -233,12 +241,12 @@ class PropertyRepositoryImpl(
 
         val candidates = if (isDirectFromFirestore) {
             runCatching {
-                dao.insertProperties(firestoreCandidates.map { PropertyEntity.fromDomain(it) })
+                dao.insertProperties(firestoreCandidates.map { PropertyMapper.domainToEntity(it) })
             }
             firestoreCandidates
         } else {
             // Local fallback when network / Firestore is offline or empty
-            dao.getAllPropertiesSync().map { it.toDomain() }
+            dao.getAllPropertiesSync().map { PropertyMapper.entityToDomain(it) }
         }
 
         return candidates.map { prop ->
