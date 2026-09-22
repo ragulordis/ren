@@ -109,6 +109,9 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.Property
+import com.example.data.model.ListingType
+import com.example.data.model.PropertyCategory
+import com.example.data.model.formatIndianCurrency
 import com.example.data.model.SellingSpeed
 import com.example.ui.theme.CardBorder
 import com.example.ui.theme.FastSaleAmber
@@ -656,7 +659,106 @@ fun PropertyDetailSheet(
                     }
                 }
 
-                // Property Description Section
+                // Rental Breakdown Card
+                if (property.listingType == com.example.data.model.ListingType.RENT || property.category == com.example.data.model.PropertyCategory.RENT) {
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
+                        modifier = Modifier.fillMaxWidth().testTag("property_detail_rental_breakdown_card")
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Rental Terms & Availability", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text("Security Deposit", fontSize = 11.sp, color = TextSecondary)
+                                    Text(
+                                        text = if (property.securityDeposit > 0) formatIndianCurrency(property.securityDeposit, com.example.data.model.ListingType.BUY) else "Contact Owner",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextPrimary
+                                    )
+                                }
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text("Maintenance", fontSize = 11.sp, color = TextSecondary)
+                                    Text(
+                                        text = if (property.isMaintenanceIncluded) "Included in Rent" else if (property.maintenanceAmount > 0) "₹%,d / month".format(property.maintenanceAmount) else "Nil / Direct EB",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextPrimary
+                                    )
+                                }
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text("Furnishing", fontSize = 11.sp, color = TextSecondary)
+                                    Text(
+                                        text = property.furnishing.ifBlank { "Unfurnished" },
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextPrimary
+                                    )
+                                }
+                            }
+                            if (property.availableFrom.isNotBlank()) {
+                                Text("Available: ${property.availableFrom}", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                            }
+                            if (property.tenantPreferences.isNotEmpty()) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Preferred:", fontSize = 11.sp, color = TextSecondary)
+                                    property.tenantPreferences.forEach { pref ->
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                                        ) {
+                                            Text(pref, fontSize = 10.5.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Land / Plot Breakdown Card
+                if (property.category == com.example.data.model.PropertyCategory.LAND) {
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
+                        modifier = Modifier.fillMaxWidth().testTag("property_detail_land_breakdown_card")
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Land & Plot Measurements", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                            val cents = String.format("%.2f", property.areaSqFt / 435.6)
+                            val grounds = String.format("%.2f", property.areaSqFt / 2400.0)
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text("Plot Area", fontSize = 11.sp, color = TextSecondary)
+                                    Text("${property.areaSqFt} sq.ft", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                }
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text("In Cents", fontSize = 11.sp, color = TextSecondary)
+                                    Text("≈ $cents Cents", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                }
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text("In Grounds", fontSize = 11.sp, color = TextSecondary)
+                                    Text("≈ $grounds Grounds", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                }
+                            }
+                            if (property.price > 0 && property.areaSqFt > 0) {
+                                val ratePerCent = (property.price / (property.areaSqFt / 435.6)).toLong()
+                                Text(
+                                    text = "Rate: ≈ ₹%,d / Cent (₹%,d / sq.ft)".format(ratePerCent, property.price / property.areaSqFt),
+                                    fontSize = 12.sp,
+                                    color = TextSecondary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+                }
                 Card(
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),

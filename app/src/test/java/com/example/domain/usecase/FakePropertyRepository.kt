@@ -91,6 +91,8 @@ open class FakePropertyRepository : PropertyRepository {
 
     override suspend fun reportProperty(propertyId: String, propertyTitle: String, reason: String, details: String) {}
 
+    override suspend fun blockUser(userId: String) {}
+
     override fun getPropertiesByCategory(category: String): Flow<List<Property>> {
         return flowOf((properties + addedProperties).filter { it.category.name.equals(category, ignoreCase = true) })
     }

@@ -139,7 +139,7 @@ data class Property(
     val mapLng: Double = 79.8350,
     val isPrivate: Boolean = false,
     val status: String = "Pending Review",
-    val ownerEmail: String = ""
+    val ownerEmail: String = if (ownerName.isNotBlank()) "${ownerName.lowercase().replace(" ", "")}@ren.in" else ""
 ) {
     val formattedPrice: String
         get() = formatIndianCurrency(price, listingType)

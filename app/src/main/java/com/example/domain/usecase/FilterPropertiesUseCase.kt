@@ -39,7 +39,14 @@ class FilterPropertiesUseCase {
             .filter { prop ->
                 // Property type filter
                 if (!criteria.propertyType.isNullOrBlank() && criteria.propertyType != "All") {
-                    prop.propertyType.contains(criteria.propertyType, ignoreCase = true)
+                    val filterType = criteria.propertyType
+                    if (filterType.contains("Plot", ignoreCase = true) || filterType.contains("Land", ignoreCase = true)) {
+                        prop.propertyType.contains("Plot", ignoreCase = true) ||
+                        prop.propertyType.contains("Land", ignoreCase = true) ||
+                        prop.category == PropertyCategory.LAND
+                    } else {
+                        prop.propertyType.contains(filterType, ignoreCase = true)
+                    }
                 } else true
             }
             .filter { prop ->

@@ -9,44 +9,24 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Bathtub
 import androidx.compose.material.icons.filled.Bed
-import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material.icons.filled.ElectricBolt
-import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.SquareFoot
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -59,29 +39,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.R
+import com.example.data.model.ListingType
 import com.example.data.model.Property
+import com.example.data.model.PropertyCategory
 import com.example.data.model.SellingSpeed
-import com.example.ui.theme.CardBorder
-import com.example.ui.theme.CardBorderSubtle
-import com.example.ui.theme.CoolDarkCardGradient
-import com.example.ui.theme.CoolGlassmorphicBorder
-import com.example.ui.theme.CoolHeroGradient
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
-import com.example.ui.theme.UrgencyDarkBorder
-import com.example.ui.theme.UrgencyDarkCard
-import com.example.ui.theme.UrgencyFlame
-import com.example.ui.theme.NavyPrimary
-import com.example.ui.theme.BlueCorporate
-import com.example.ui.theme.AccentGold
+import com.example.ui.theme.*
 
 @Composable
 fun getDrawableResForName(name: String): Int {
@@ -90,6 +58,11 @@ fun getDrawableResForName(name: String): Int {
     return if (resId != 0) resId else R.drawable.prop_house_kottakuppam
 }
 
+/**
+ * Ren Luxury Property Card.
+ * Structure:
+ * Property image -> Listing badge -> Favorite button -> Property title -> Price -> Location -> Key attributes
+ */
 @Composable
 fun PropertyCard(
     property: Property,
@@ -101,7 +74,7 @@ fun PropertyCard(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val cardScale by animateFloatAsState(
-        targetValue = if (isPressed) 0.978f else 1.0f,
+        targetValue = if (isPressed) 0.982f else 1.0f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessLow
@@ -114,21 +87,21 @@ fun PropertyCard(
             .fillMaxWidth()
             .scale(cardScale)
             .clip(RoundedCornerShape(22.dp))
-            .border(1.dp, CardBorder, RoundedCornerShape(22.dp))
+            .border(1.dp, RenBorder, RoundedCornerShape(22.dp))
             .clickable(
                 interactionSource = interactionSource,
                 indication = null
             ) { onClick() }
             .testTag("property_card_${property.id}"),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isPressed) 1.dp else 3.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isPressed) 1.dp else 2.dp)
     ) {
         Column {
-            // Image Box
+            // 1. Dominant Photography Box
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(185.dp)
+                    .height(210.dp)
             ) {
                 PropertyImage(
                     imageSource = property.imageResName,
@@ -136,38 +109,69 @@ fun PropertyCard(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(185.dp)
+                        .height(210.dp)
                 )
 
-                // Gradient overlay at top and bottom for high readability & cool ambiance
+                // Cinematic subtle vignette gradient for text contrast
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(185.dp)
+                        .height(210.dp)
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
-                                    Color.Black.copy(alpha = 0.55f),
+                                    Color.Black.copy(alpha = 0.45f),
                                     Color.Transparent,
-                                    Color.Black.copy(alpha = 0.75f)
+                                    Color.Black.copy(alpha = 0.55f)
                                 )
                             )
                         )
                 )
 
-                // Top Badges
+                // Top Bar: Listing Badge & Spring-Animated Favorite Button
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(12.dp),
+                        .padding(14.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    SellingSpeedBadge(speed = property.sellingSpeed)
+                    // Listing Badge
+                    when {
+                        property.sellingSpeed == SellingSpeed.FAST || property.sellingSpeed == SellingSpeed.URGENT -> {
+                            RenBadge(
+                                text = "⚡ FAST SALE",
+                                containerColor = RenDeepNavy.copy(alpha = 0.9f),
+                                contentColor = RenGold,
+                                borderColor = RenGold.copy(alpha = 0.5f)
+                            )
+                        }
+                        property.category == PropertyCategory.RENT || property.listingType == ListingType.RENT -> {
+                            RenBadge(
+                                text = "FOR RENT",
+                                containerColor = RenPrimaryNavy.copy(alpha = 0.88f),
+                                contentColor = RenSurfaceWhite
+                            )
+                        }
+                        property.category == PropertyCategory.LAND -> {
+                            RenBadge(
+                                text = "LAND FOR SALE",
+                                containerColor = RenPrimaryNavy.copy(alpha = 0.88f),
+                                contentColor = RenSurfaceWhite
+                            )
+                        }
+                        else -> {
+                            RenBadge(
+                                text = "FOR SALE",
+                                containerColor = RenPrimaryNavy.copy(alpha = 0.88f),
+                                contentColor = RenSurfaceWhite
+                            )
+                        }
+                    }
 
-                    // Favorite / Save Toggle Button with bouncy spring animated heart icon
+                    // Favorite Button with tactile spring bounce
                     val heartScale by animateFloatAsState(
-                        targetValue = if (property.isSaved) 1.25f else 1.0f,
+                        targetValue = if (property.isSaved) 1.2f else 1.0f,
                         animationSpec = spring(
                             dampingRatio = Spring.DampingRatioHighBouncy,
                             stiffness = Spring.StiffnessMediumLow
@@ -179,22 +183,15 @@ fun PropertyCard(
                         onClick = onToggleSave,
                         modifier = Modifier
                             .size(38.dp)
-                            .background(
-                                color = if (property.isSaved) UrgencyFlame.copy(alpha = 0.25f) else Color.Black.copy(alpha = 0.5f),
-                                shape = CircleShape
-                            )
-                            .border(
-                                width = 1.dp,
-                                color = if (property.isSaved) UrgencyFlame.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.2f),
-                                shape = CircleShape
-                            )
+                            .background(RenSurfaceWhite.copy(alpha = 0.92f), CircleShape)
+                            .border(1.dp, RenBorder.copy(alpha = 0.6f), CircleShape)
                             .testTag("save_button_${property.id}")
                             .testTag("favorite_button_${property.id}")
                     ) {
                         Icon(
                             imageVector = if (property.isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                             contentDescription = if (property.isSaved) "Remove from favorites" else "Add to favorites",
-                            tint = if (property.isSaved) UrgencyFlame else Color.White,
+                            tint = if (property.isSaved) RenError else RenPrimaryNavy,
                             modifier = Modifier
                                 .size(20.dp)
                                 .scale(heartScale)
@@ -202,153 +199,138 @@ fun PropertyCard(
                     }
                 }
 
-                // Bottom overlay inside image: Price & Location
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(12.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                // Verified pill on bottom-right of image if verified
+                if (property.verificationLevel > 0) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = RenSurfaceWhite.copy(alpha = 0.92f),
+                        border = BorderStroke(1.dp, RenBorder),
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(12.dp)
                     ) {
-                        Text(
-                            text = property.formattedPrice,
-                            color = Color.White,
-                            fontSize = 21.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                        if (property.marketEstimate > property.price) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(Icons.Default.CheckCircle, null, tint = RenSuccess, modifier = Modifier.size(12.dp))
                             Text(
-                                text = property.formattedMarketEstimate,
-                                color = Color(0xFFCBD5E1),
-                                fontSize = 13.sp,
-                                textDecoration = TextDecoration.LineThrough
+                                text = if (property.verificationLevel >= 3) "Ownership Verified" else "Verified",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = RenPrimaryNavy
                             )
-                            OpportunityPill(savingsText = property.formattedSavings)
                         }
                     }
                 }
             }
 
-            // Card Body Details
+            // 2. Card Content & Metadata
             Column(
-                modifier = Modifier.padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // Title
                 Text(
                     text = property.title,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
 
-                // Location & Distance
+                // Price Hierarchy (Prominent numeric price)
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp)
+                    RenPriceText(
+                        formattedPrice = property.formattedPrice,
+                        priceFontSize = 20.sp,
+                        periodFontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
-                    Text(
-                        text = "${property.location} • ${property.distanceKm} km away",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(modifier = Modifier.weight(1f))
-                    VerificationBadge(level = property.verificationLevel)
+
+                    if (property.marketEstimate > property.price) {
+                        Text(
+                            text = property.formattedMarketEstimate,
+                            fontSize = 12.sp,
+                            color = RenTextMuted,
+                            textDecoration = TextDecoration.LineThrough
+                        )
+                    }
                 }
 
-                // Specs: BHK, Bath, SqFt
+                // Location with pin
+                RenLocationRow(
+                    location = "${property.location} • ${property.distanceKm} km away"
+                )
+
+                // Key Attributes Matrix
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
-                        .padding(horizontal = 10.dp, vertical = 7.dp),
+                        .background(RenSecondaryIvory)
+                        .border(1.dp, RenBorderSubtle, RoundedCornerShape(10.dp))
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (property.bedrooms > 0) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(Icons.Default.Bed, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
-                            Text("${property.bedrooms} BHK", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
+                    if (property.category == PropertyCategory.LAND) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(Icons.Default.SquareFoot, null, tint = RenPrimaryNavy, modifier = Modifier.size(14.dp))
+                            Text("${property.areaSqFt} sq.ft", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = RenPrimaryNavy)
+                        }
+                        Text(
+                            text = property.propertyType,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = RenTextSecondary
+                        )
+                    } else {
+                        if (property.bedrooms > 0) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Icon(Icons.Default.Bed, null, tint = RenPrimaryNavy, modifier = Modifier.size(14.dp))
+                                Text("${property.bedrooms} Beds", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = RenPrimaryNavy)
+                            }
+                        }
+                        if (property.bathrooms > 0) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Icon(Icons.Default.Bathtub, null, tint = RenPrimaryNavy, modifier = Modifier.size(14.dp))
+                                Text("${property.bathrooms} Baths", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = RenPrimaryNavy)
+                            }
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(Icons.Default.SquareFoot, null, tint = RenPrimaryNavy, modifier = Modifier.size(14.dp))
+                            Text("${property.areaSqFt} sqft", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = RenPrimaryNavy)
                         }
                     }
-                    if (property.bathrooms > 0) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(Icons.Default.Bathtub, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
-                            Text("${property.bathrooms} Bath", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(Icons.Default.SquareFoot, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
-                        Text("${property.areaSqFt} sq.ft", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
-                    }
-
-                    UrgencyScoreRow(score = property.urgencyScore)
                 }
 
-                // Action Row: Contact Seller button with tactile feedback
-                val contactInteraction = remember { MutableInteractionSource() }
-                val isContactPressed by contactInteraction.collectIsPressedAsState()
-                val contactScale by animateFloatAsState(
-                    targetValue = if (isContactPressed) 0.96f else 1.0f,
-                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                    label = "contactScale_${property.id}"
-                )
-
-                OutlinedButton(
+                // Contact Action
+                RenOutlinedButton(
+                    text = "Contact Owner",
+                    icon = Icons.AutoMirrored.Filled.Chat,
                     onClick = onContactSeller,
-                    interactionSource = contactInteraction,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(40.dp)
-                        .scale(contactScale)
-                        .testTag("contact_seller_button_${property.id}"),
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
-                        contentColor = MaterialTheme.colorScheme.primary
-                    ),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Chat,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Contact Seller",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                    modifier = Modifier.fillMaxWidth(),
+                    height = 42.dp,
+                    testTag = "contact_seller_button_${property.id}"
+                )
             }
         }
     }
 }
 
+/**
+ * Fast Sale Card with refined luxury urgency.
+ * Uses deep navy background and champagne gold accents without loud colors.
+ */
 @Composable
 fun UrgentPropertyCard(
     property: Property,
@@ -360,51 +342,41 @@ fun UrgentPropertyCard(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val cardScale by animateFloatAsState(
-        targetValue = if (isPressed) 0.975f else 1.0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
+        targetValue = if (isPressed) 0.98f else 1.0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "urgentCardPressScale_${property.id}"
-    )
-
-    val infiniteTransition = rememberInfiniteTransition(label = "urgentGlow_${property.id}")
-    val glowAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.5f,
-        targetValue = 0.9f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "urgentGlowAlpha_${property.id}"
     )
 
     Card(
         modifier = modifier
-            .width(295.dp)
+            .width(290.dp)
             .scale(cardScale)
-            .clip(RoundedCornerShape(24.dp))
-            .background(CoolDarkCardGradient)
-            .border(1.dp, UrgencyFlame.copy(alpha = glowAlpha * 0.6f), RoundedCornerShape(24.dp))
+            .clip(RoundedCornerShape(22.dp))
+            .border(1.dp, RenGold.copy(alpha = 0.45f), RoundedCornerShape(22.dp))
             .clickable(
                 interactionSource = interactionSource,
                 indication = null
             ) { onClick() }
             .testTag("urgent_card_${property.id}"),
-        colors = CardDefaults.cardColors(containerColor = UrgencyDarkCard),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+        colors = CardDefaults.cardColors(containerColor = RenDeepNavy),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Header Row: Urgent Sale Pill & Expiry + Save
+            // Header Row: Fast Sale Badge & Expiry + Save
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                SellingSpeedBadge(speed = property.sellingSpeed)
+                RenBadge(
+                    text = "⚡ FAST SALE",
+                    containerColor = RenGold.copy(alpha = 0.15f),
+                    contentColor = RenGold,
+                    borderColor = RenGold.copy(alpha = 0.5f)
+                )
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -414,19 +386,19 @@ fun UrgentPropertyCard(
                         text = "48 hrs left",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFFED7AA)
+                        color = RenGold
                     )
 
                     IconButton(
                         onClick = onToggleSave,
                         modifier = Modifier
-                            .size(30.dp)
-                            .background(Color.White.copy(alpha = 0.14f), CircleShape)
+                            .size(32.dp)
+                            .background(Color.White.copy(alpha = 0.12f), CircleShape)
                     ) {
                         Icon(
                             imageVector = if (property.isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                             contentDescription = "Save",
-                            tint = if (property.isSaved) UrgencyFlame else Color.White,
+                            tint = if (property.isSaved) RenError else RenSurfaceWhite,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -437,66 +409,51 @@ fun UrgentPropertyCard(
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = property.title,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = RenSurfaceWhite,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = "Near ${property.location}",
                     fontSize = 12.sp,
-                    color = Color(0xFF94A3B8)
+                    color = RenDarkTextSecondary
                 )
             }
 
-            // Bottom Section: Offer Price + Strikethrough & Thumbnail Preview
+            // Price & Thumbnail Box
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(
-                        width = 1.dp,
-                        color = Color(0xFF334155),
-                        shape = RoundedCornerShape(14.dp)
-                    )
-                    .background(Color.Black.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(RenDarkSurface)
+                    .border(1.dp, RenDarkBorder, RoundedCornerShape(14.dp))
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
                     Text(
-                        text = "Offer Price",
-                        fontSize = 10.sp,
-                        color = Color(0xFF94A3B8)
+                        text = "OFFER PRICE",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp,
+                        color = RenGold
                     )
-                    Row(
-                        verticalAlignment = Alignment.Bottom,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            text = property.formattedPrice,
-                            color = Color.White,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                        if (property.marketEstimate > property.price) {
-                            Text(
-                                text = property.formattedMarketEstimate,
-                                color = Color(0xFF64748B),
-                                fontSize = 11.sp,
-                                textDecoration = TextDecoration.LineThrough
-                            )
-                        }
-                    }
+                    Text(
+                        text = property.formattedPrice,
+                        color = RenSurfaceWhite,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
 
-                // Image Thumbnail Preview Box
                 Box(
                     modifier = Modifier
-                        .size(width = 64.dp, height = 48.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .border(1.dp, Color(0xFF475569), RoundedCornerShape(10.dp))
+                        .size(width = 64.dp, height = 46.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .border(1.dp, RenDarkBorder, RoundedCornerShape(8.dp))
                 ) {
                     PropertyImage(
                         imageSource = property.imageResName,
@@ -507,53 +464,86 @@ fun UrgentPropertyCard(
                 }
             }
 
-            // High Opportunity Pill & Savings
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "HIGH OPPORTUNITY • 95% MATCH",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFFFB923C),
-                    letterSpacing = 0.4.sp
-                )
-                if (property.marketEstimate > property.price) {
-                    OpportunityPill(savingsText = property.formattedSavings)
-                }
-            }
-
             // Quick Contact Button
-            OutlinedButton(
+            RenOutlinedButton(
+                text = "Contact Seller",
+                icon = Icons.AutoMirrored.Filled.Chat,
                 onClick = onContactSeller,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(36.dp)
-                    .testTag("urgent_contact_seller_button_${property.id}"),
-                shape = RoundedCornerShape(10.dp),
-                border = BorderStroke(1.dp, AccentGold.copy(alpha = 0.5f)),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = AccentGold.copy(alpha = 0.15f),
-                    contentColor = AccentGold
-                ),
-                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Chat,
-                    contentDescription = null,
-                    modifier = Modifier.size(14.dp),
-                    tint = AccentGold
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "Contact Seller",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = AccentGold
-                )
-            }
+                borderColor = RenGold.copy(alpha = 0.6f),
+                textColor = RenGold,
+                modifier = Modifier.fillMaxWidth(),
+                height = 38.dp,
+                testTag = "urgent_contact_seller_button_${property.id}"
+            )
         }
+    }
+}
+
+@Composable
+fun SellingSpeedBadge(speed: SellingSpeed) {
+    when (speed) {
+        SellingSpeed.FAST, SellingSpeed.URGENT -> RenBadge(
+            text = "⚡ FAST SALE",
+            containerColor = RenDeepNavy,
+            contentColor = RenGold,
+            borderColor = RenGold.copy(alpha = 0.4f)
+        )
+        SellingSpeed.PRIVATE -> RenBadge(
+            text = "EXCLUSIVE",
+            containerColor = RenPrimaryNavy,
+            contentColor = RenSurfaceWhite
+        )
+        SellingSpeed.NORMAL -> RenBadge(
+            text = "VERIFIED",
+            containerColor = RenSuccessSurface,
+            contentColor = RenSuccess,
+            borderColor = RenSuccess.copy(alpha = 0.3f)
+        )
+    }
+}
+
+@Composable
+fun VerificationBadge(level: Int) {
+    if (level > 0) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            Icon(Icons.Default.CheckCircle, null, tint = RenSuccess, modifier = Modifier.size(13.dp))
+            Text(
+                text = if (level >= 3) "Ownership Verified" else "Verified",
+                fontSize = 11.sp,
+                color = RenSuccess,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+fun UrgencyScoreRow(score: Int) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
+        Icon(Icons.Default.Bolt, null, tint = RenGold, modifier = Modifier.size(13.dp))
+        Text(text = "$score%", fontSize = 11.sp, color = RenPrimaryNavy, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun OpportunityPill(savingsText: String) {
+    Surface(
+        shape = RoundedCornerShape(6.dp),
+        color = RenGoldSurface,
+        border = BorderStroke(1.dp, RenGoldBorder)
+    ) {
+        Text(
+            text = savingsText,
+            color = RenPrimaryNavy,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+        )
     }
 }
